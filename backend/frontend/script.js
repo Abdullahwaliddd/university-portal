@@ -27,85 +27,44 @@ function initPage() {
 // ============================================
 async function loadHomePage() {
     try {
-        // Load stats
+        console.log('Loading homepage...');
+        
         const [universities, students, majors] = await Promise.all([
-            fetch(`${API_URL}/universities`).then(r => r.json()),
+            fetch(`${API_URL}/universities`).then(r => {
+                console.log('Universities response:', r.status);
+                return r.json();
+            }),
             fetch(`${API_URL}/students`).then(r => r.json()),
             fetch(`${API_URL}/majors`).then(r => r.json())
         ]);
 
-        document.getElementById('uniCountStat').textContent = universities.length;
-        document.getElementById('studentCountStat').textContent = students.length;
-        document.getElementById('majorCountStat').textContent = majors.length;
+        console.log('Universities:', universities);
+        console.log('Students:', students);
+        console.log('Majors:', majors);
 
-        // Load universities grid
-        loadUniversitiesGrid(universities);
+        const uniCountEl = document.getElementById('uniCountStat');
+        const studentCountEl = document.getElementById('studentCountStat');
+        const majorCountEl = document.getElementById('majorCountStat');
+        const grid = document.getElementById('universitiesGrid');
+
+        if (uniCountEl) uniCountEl.textContent = universities.length;
+        if (studentCountEl) studentCountEl.textContent = students.length;
+        if (majorCountEl) majorCountEl.textContent = majors.length;
+
+        if (grid && universities.length > 0) {
+            loadUniversitiesGrid(universities);
+        } else if (grid) {
+            grid.innerHTML = '<p style="color:red;">No universities loaded. Check console.</p>';
+        }
         
-        // Load footer universities
         loadFooterUniversities(universities);
 
     } catch (error) {
         console.error('Error loading homepage:', error);
+        const grid = document.getElementById('universitiesGrid');
+        if (grid) grid.innerHTML = '<p style="color:red;">Error: ' + error.message + '</p>';
     }
 }
-
-function loadUniversitiesGrid(universities) {
-    const grid = document.getElementById('universitiesGrid');
-    if (!grid) return;
-
-    const colors = [
-        'linear-gradient(135deg, #667eea, #764ba2)',
-        'linear-gradient(135deg, #f093fb, #f5576c)',
-        'linear-gradient(135deg, #4facfe, #00f2fe)',
-        'linear-gradient(135deg, #43e97b, #38f9d7)',
-        'linear-gradient(135deg, #fa709a, #fee140)',
-        'linear-gradient(135deg, #a18cd1, #fbc2eb)',
-        'linear-gradient(135deg, #ff9a9e, #fecfef)'
-    ];
-
-    grid.innerHTML = universities.map((uni, index) => `
-        <div class="university-card" onclick="viewUniversity(${uni.University_ID})">
-            <div class="uni-card-image" style="background: ${colors[index % colors.length]};">
-                <span style="font-size: 70px;">🏛️</span>
-                <div class="uni-card-badge">${uni.Type || 'University'}</div>
-            </div>
-            <div class="uni-card-content">
-                <h3>${uni.Name}</h3>
-                <div class="uni-card-info">
-                    <span>📍 ${uni.Location || 'Egypt'}</span>
-                    <span>📧 ${uni.Email || 'Contact'}</span>
-                </div>
-                <p style="color: var(--text-light); font-size: 13px;">Click to explore programs and apply</p>
-            </div>
-        </div>
-    `).join('');
-}
-
-function loadFooterUniversities(universities) {
-    const footer = document.getElementById('footerUnis');
-    if (!footer) return;
-    
-    footer.innerHTML = universities.map(uni => 
-        `<a href="#" onclick="viewUniversity(${uni.University_ID})">${uni.Name}</a>`
-    ).join('');
-}
-
-function viewUniversity(id) {
-    window.location.href = `university.html?id=${id}`;
-}
-
-function scrollToUniversities() {
-    document.getElementById('universities').scrollIntoView({ behavior: 'smooth' });
-}
-
-function scrollToAbout() {
-    document.getElementById('about').scrollIntoView({ behavior: 'smooth' });
-}
-
-function scrollToContact() {
-    document.getElementById('contact').scrollIntoView({ behavior: 'smooth' });
-}
-
 // ============================================
 // AUTHENTICATION
 // ============================================
