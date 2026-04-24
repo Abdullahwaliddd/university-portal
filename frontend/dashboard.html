@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard - EduGate</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <a href="index.html" class="logo-text">Edu<span class="logo-highlight">Gate</span></a>
+            </div>
+            <div class="nav-buttons">
+                <span id="welcomeUser"></span>
+                <button class="btn-outline" onclick="logout()">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="dashboard-container">
+        <div class="dashboard-sidebar">
+            <div class="student-profile" id="studentProfile">
+                <!-- Student info -->
+            </div>
+            <ul class="dashboard-menu">
+                <li><a href="#" class="active" onclick="showDashboardTab('applications', this)">My Applications</a></li>
+                <li><a href="#" onclick="showDashboardTab('newApp', this)">Apply to University</a></li>
+                <li><a href="#" onclick="showDashboardTab('profile', this)">My Profile</a></li>
+            </ul>
+        </div>
+        <div class="dashboard-content" id="dashboardContent">
+            <!-- Dynamic content -->
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

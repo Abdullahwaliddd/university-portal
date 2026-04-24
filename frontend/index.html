@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduGate - Open the Gate to Your Future</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <span class="logo-text">Edu<span class="logo-highlight">Gate</span></span>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="index.html" class="active">Home</a></li>
+                <li><a href="#" onclick="scrollToUniversities()">Universities</a></li>
+                <li><a href="#" onclick="scrollToAbout()">About Us</a></li>
+                <li><a href="#" onclick="scrollToContact()">Contact</a></li>
+            </ul>
+            <div class="nav-buttons">
+                <a href="login.html" class="btn-outline">Login</a>
+                <a href="register.html" class="btn-primary">Register</a>
+            </div>
+            <div class="hamburger" onclick="toggleMenu()">
+                <span></span><span></span><span></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <p class="hero-subtitle">we OPEN the</p>
+            <h1 class="hero-title">GATE<br>to your<br><span class="hero-highlight">FUTURE</span></h1>
+            <p class="hero-description">Discover top universities in Egypt, compare programs, and apply to your dream major - all in one place.</p>
+            <div class="hero-buttons">
+                <a href="register.html" class="btn-primary btn-large">Get Started</a>
+                <a href="#universities" class="btn-outline btn-large">Explore Universities</a>
+            </div>
+        </div>
+        <div class="hero-image">
+            <div class="hero-illustration">
+                <div class="floating-card card-1">🎓</div>
+                <div class="floating-card card-2">📚</div>
+                <div class="floating-card card-3">🏛️</div>
+                <div class="floating-card card-4">✨</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="stats">
+        <div class="container">
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <h3 id="uniCountStat">0</h3>
+                    <p>Universities</p>
+                </div>
+                <div class="stat-item">
+                    <h3 id="majorCountStat">0</h3>
+                    <p>Majors</p>
+                </div>
+                <div class="stat-item">
+                    <h3 id="studentCountStat">0</h3>
+                    <p>Students</p>
+                </div>
+                <div class="stat-item">
+                    <h3>100%</h3>
+                    <p>Online Process</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Universities Section -->
+    <section id="universities" class="universities-section">
+        <div class="container">
+            <div class="section-header">
+                <h2>Our Partner Universities</h2>
+                <p>Choose from Egypt's top private universities and find your perfect program</p>
+            </div>
+            <div class="universities-grid" id="universitiesGrid">
+                <!-- Loaded dynamically -->
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="about-section">
+        <div class="container">
+            <div class="about-content">
+                <div class="about-text">
+                    <h2>About EduGate</h2>
+                    <p>EduGate is your all-in-one platform for university admissions in Egypt. We connect ambitious students with top-tier universities, providing a seamless application experience.</p>
+                    <ul class="about-features">
+                        <li>✅ Browse 7+ prestigious universities</li>
+                        <li>✅ Compare 25+ majors and programs</li>
+                        <li>✅ Apply online in minutes</li>
+                        <li>✅ Track your application status</li>
+                        <li>✅ Access detailed program information</li>
+                    </ul>
+                </div>
+                <div class="about-stats">
+                    <div class="about-stat-card">
+                        <h3>7+</h3>
+                        <p>Universities</p>
+                    </div>
+                    <div class="about-stat-card">
+                        <h3>25+</h3>
+                        <p>Programs</p>
+                    </div>
+                    <div class="about-stat-card">
+                        <h3>500+</h3>
+                        <p>Courses</p>
+                    </div>
+                    <div class="about-stat-card">
+                        <h3>15+</h3>
+                        <p>Students Placed</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="contact-section">
+        <div class="container">
+            <div class="section-header">
+                <h2>Get In Touch</h2>
+                <p>Have questions about universities or the application process? We're here to help!</p>
+            </div>
+            <div class="contact-grid">
+                <div class="contact-info">
+                    <div class="contact-card">
+                        <span class="contact-icon">📧</span>
+                        <h4>Email</h4>
+                        <p>info@edugate.com</p>
+                    </div>
+                    <div class="contact-card">
+                        <span class="contact-icon">📞</span>
+                        <h4>Phone</h4>
+                        <p>+20 100 000 0000</p>
+                    </div>
+                    <div class="contact-card">
+                        <span class="contact-icon">📍</span>
+                        <h4>Location</h4>
+                        <p>Cairo, Egypt</p>
+                    </div>
+                </div>
+                <form class="contact-form" onsubmit="handleContact(event)">
+                    <input type="text" placeholder="Your Name" required>
+                    <input type="email" placeholder="Your Email" required>
+                    <textarea rows="5" placeholder="Your Message" required></textarea>
+                    <button type="submit" class="btn-primary">Send Message</button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <h3>Edu<span>Gate</span></h3>
+                    <p>Opening the gate to your future through quality education.</p>
+                </div>
+                <div class="footer-links">
+                    <h4>Quick Links</h4>
+                    <a href="index.html">Home</a>
+                    <a href="#universities">Universities</a>
+                    <a href="login.html">Login</a>
+                    <a href="register.html">Register</a>
+                </div>
+                <div class="footer-links">
+                    <h4>Universities</h4>
+                    <div id="footerUnis"></div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 EduGate. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
