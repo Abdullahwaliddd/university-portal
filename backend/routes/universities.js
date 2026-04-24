@@ -12,7 +12,7 @@ router.get('/', async (req, res) => {
     }
 });
 
-// Get university by ID with colleges and majors
+// Get university by ID with colleges, majors, study plans and courses
 router.get('/:id', async (req, res) => {
     try {
         const [university] = await db.query('SELECT * FROM university WHERE University_ID = ?', [req.params.id]);
@@ -23,6 +23,22 @@ router.get('/:id', async (req, res) => {
         // Get majors for each college
         for (let college of colleges) {
             const [majors] = await db.query('SELECT * FROM major WHERE College_ID = ?', [college.College_ID]);
+            
+            // Get study plans and courses for each major
+            for (let major of majors) {
+                const [studyPlans] = await db.query('SELECT * FROM study_plan WHERE Major_ID = ?', [major.Major_ID]);
+                
+                for (let plan of studyPlans) {
+                    const [courses] = await db.query(
+                        'SELECT * FROM course WHERE Plan_ID = ? ORDER BY Semester_No, Course_ID',
+                        [plan.Plan_ID]
+                    );
+                    plan.courses = courses;
+                }
+                
+                major.studyPlans = studyPlans;
+            }
+            
             college.majors = majors;
         }
         

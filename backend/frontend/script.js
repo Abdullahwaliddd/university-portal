@@ -243,12 +243,12 @@ function displayUniversityDetail(uni) {
                 </div>
                 <p>A prestigious university offering world-class education with state-of-the-art facilities and experienced faculty.</p>
                 ${uni.Website ? (() => {
-    let url = uni.Website;
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-        url = 'https://' + url;
-    }
-    return `<p><a href="${url}" target="_blank" rel="noopener noreferrer" style="color:#ff6600;">Visit Official Website →</a></p>`;
-})() : ''}
+                    let url = uni.Website;
+                    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                        url = 'https://' + url;
+                    }
+                    return `<p><a href="${url}" target="_blank" rel="noopener noreferrer" style="color:#ff6600;">Visit Official Website →</a></p>`;
+                })() : ''}
                 ${localStorage.getItem('currentStudent') ? 
                     `<a href="dashboard.html" class="apply-btn">Apply Now →</a>` :
                     `<a href="login.html" class="apply-btn">Login to Apply →</a>`
@@ -257,10 +257,11 @@ function displayUniversityDetail(uni) {
         </div>
         
         <h2 style="font-size:32px;margin-bottom:20px;">Colleges & Programs</h2>
+        <p style="color:#666;margin-bottom:20px;">Click on a college to view detailed study plan</p>
         <div class="colleges-grid">
             ${uni.colleges && uni.colleges.length > 0 ? 
                 uni.colleges.map(college => `
-                    <div class="college-card">
+                    <div class="college-card" onclick="showStudyPlan('${college.Name.replace(/'/g, "\\'")}', ${JSON.stringify(college.majors || []).replace(/"/g, '&quot;')})">
                         <h4>${college.Name}</h4>
                         <p>${college.Description || ''}</p>
                         ${college.majors && college.majors.length > 0 ? `
@@ -269,13 +270,117 @@ function displayUniversityDetail(uni) {
                                     <span class="major-tag">${major.Name} (${major.Degree_Type || 'Bachelor'})</span>
                                 `).join('')}
                             </div>
-                        ` : ''}
+                        ` : '<p style="font-size:12px;color:#999;">No majors available</p>'}
+                        <p style="color:#ff6600;font-size:12px;margin-top:10px;">📚 Click to view study plan →</p>
                     </div>
                 `).join('') :
                 '<p>No colleges found for this university.</p>'
             }
         </div>
+        
+        <!-- Study Plan Modal -->
+        <div id="studyPlanModal" class="modal" style="display:none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="modalTitle">Study Plan</h3>
+                    <button class="modal-close" onclick="closeModal()">&times;</button>
+                </div>
+                <div class="modal-body" id="modalBody">
+                </div>
+            </div>
+        </div>
     `;
+}
+
+// Show Study Plan Modal
+function showStudyPlan(collegeName, majors) {
+    const modal = document.getElementById('studyPlanModal');
+    const title = document.getElementById('modalTitle');
+    const body = document.getElementById('modalBody');
+    
+    title.textContent = collegeName + ' - Study Plan';
+    
+    let html = '';
+    
+    if (majors.length === 0) {
+        html = '<p>No study plans available for this college.</p>';
+    } else {
+        majors.forEach(major => {
+            html += `
+                <div style="margin-bottom:30px;border:1px solid #ddd;border-radius:10px;padding:20px;">
+                    <h4 style="color:#1a237e;margin-bottom:10px;">
+                        🎓 ${major.Name} 
+                        <span style="font-size:14px;color:#666;">(${major.Degree_Type || 'Bachelor'} - ${major.Duration_Years || 4} years)</span>
+                    </h4>
+            `;
+            
+            if (major.studyPlans && major.studyPlans.length > 0) {
+                major.studyPlans.forEach(plan => {
+                    html += `
+                        <p style="color:#ff6600;font-weight:600;margin:10px 0;">
+                            📋 ${plan.Plan_Name} - ${plan.Total_Credit_Hours || 0} Credit Hours
+                        </p>
+                    `;
+                    
+                    if (plan.courses && plan.courses.length > 0) {
+                        // Group courses by level
+                        const levels = {};
+                        plan.courses.forEach(course => {
+                            const level = course.Level || 'Other';
+                            if (!levels[level]) levels[level] = [];
+                            levels[level].push(course);
+                        });
+                        
+                        html += '<div style="overflow-x:auto;">';
+                        html += '<table style="width:100%;font-size:13px;border-collapse:collapse;">';
+                        html += '<thead><tr style="background:#f0f0f0;">';
+                        html += '<th style="padding:8px;border:1px solid #ddd;">Code</th>';
+                        html += '<th style="padding:8px;border:1px solid #ddd;">Course Name</th>';
+                        html += '<th style="padding:8px;border:1px solid #ddd;">Credits</th>';
+                        html += '<th style="padding:8px;border:1px solid #ddd;">Semester</th>';
+                        html += '<th style="padding:8px;border:1px solid #ddd;">Level</th>';
+                        html += '</tr></thead><tbody>';
+                        
+                        Object.keys(levels).sort().forEach(level => {
+                            html += `<tr><td colspan="5" style="background:#e8eaf6;padding:8px;font-weight:600;">
+                                📚 ${level}</td></tr>`;
+                            levels[level].forEach(course => {
+                                html += `
+                                    <tr>
+                                        <td style="padding:6px;border:1px solid #ddd;">${course.Course_Code || 'N/A'}</td>
+                                        <td style="padding:6px;border:1px solid #ddd;">${course.Course_Name}</td>
+                                        <td style="padding:6px;border:1px solid #ddd;text-align:center;">${course.Credit_Hours || '-'}</td>
+                                        <td style="padding:6px;border:1px solid #ddd;">${course.Semester || '-'}</td>
+                                        <td style="padding:6px;border:1px solid #ddd;">${course.Level || '-'}</td>
+                                    </tr>
+                                `;
+                            });
+                        });
+                        
+                        html += '</tbody></table></div>';
+                    } else {
+                        html += '<p style="color:#999;">No courses available for this plan.</p>';
+                    }
+                });
+            } else {
+                html += '<p style="color:#999;">No study plan available for this major.</p>';
+            }
+            
+            html += '</div>';
+        });
+    }
+    
+    body.innerHTML = html;
+    modal.style.display = 'block';
+    
+    // Close when clicking outside
+    modal.onclick = function(e) {
+        if (e.target === modal) closeModal();
+    };
+}
+
+function closeModal() {
+    document.getElementById('studyPlanModal').style.display = 'none';
 }
 
 function updateNavAuth() {
