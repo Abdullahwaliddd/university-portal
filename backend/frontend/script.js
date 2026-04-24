@@ -242,7 +242,13 @@ function displayUniversityDetail(uni) {
                     ${uni.Phone ? `<span class="meta-tag">📞 ${uni.Phone}</span>` : ''}
                 </div>
                 <p>A prestigious university offering world-class education with state-of-the-art facilities and experienced faculty.</p>
-                ${uni.Website ? `<p><a href="${uni.Website}" target="_blank" style="color:#ff6600;">Visit Official Website →</a></p>` : ''}
+                ${uni.Website ? (() => {
+    let url = uni.Website;
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        url = 'https://' + url;
+    }
+    return `<p><a href="${url}" target="_blank" rel="noopener noreferrer" style="color:#ff6600;">Visit Official Website →</a></p>`;
+})() : ''}
                 ${localStorage.getItem('currentStudent') ? 
                     `<a href="dashboard.html" class="apply-btn">Apply Now →</a>` :
                     `<a href="login.html" class="apply-btn">Login to Apply →</a>`
