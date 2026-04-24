@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EduGate - Open the Gate to Your Future</title>
+    <title>EduFuture - Open the Gate to Your Future</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -11,13 +11,13 @@
     <nav class="navbar">
         <div class="nav-container">
             <div class="logo">
-                <span class="logo-text">Edu<span class="logo-highlight">Gate</span></span>
+                <span class="logo-text">Edu<span class="logo-highlight">Future</span></span>
             </div>
-            <ul class="nav-menu">
+            <ul class="nav-menu" id="navMenu">
                 <li><a href="index.html" class="active">Home</a></li>
-                <li><a href="#" onclick="scrollToUniversities()">Universities</a></li>
-                <li><a href="#" onclick="scrollToAbout()">About Us</a></li>
-                <li><a href="#" onclick="scrollToContact()">Contact</a></li>
+                <li><a href="#universities" onclick="scrollToUniversities()">Universities</a></li>
+                <li><a href="#about" onclick="scrollToAbout()">About Us</a></li>
+                <li><a href="#contact" onclick="scrollToContact()">Contact</a></li>
             </ul>
             <div class="nav-buttons">
                 <a href="login.html" class="btn-outline">Login</a>
@@ -37,7 +37,7 @@
             <p class="hero-description">Discover top universities in Egypt, compare programs, and apply to your dream major - all in one place.</p>
             <div class="hero-buttons">
                 <a href="register.html" class="btn-primary btn-large">Get Started</a>
-                <a href="#universities" class="btn-outline btn-large">Explore Universities</a>
+                <a href="#universities" class="btn-outline btn-large" onclick="scrollToUniversities()">Explore Universities</a>
             </div>
         </div>
         <div class="hero-image">
@@ -82,7 +82,7 @@
                 <p>Choose from Egypt's top private universities and find your perfect program</p>
             </div>
             <div class="universities-grid" id="universitiesGrid">
-                <!-- Loaded dynamically -->
+                <p>Loading universities...</p>
             </div>
         </div>
     </section>
@@ -92,8 +92,8 @@
         <div class="container">
             <div class="about-content">
                 <div class="about-text">
-                    <h2>About EduGate</h2>
-                    <p>EduGate is your all-in-one platform for university admissions in Egypt. We connect ambitious students with top-tier universities, providing a seamless application experience.</p>
+                    <h2>About EduFuture</h2>
+                    <p>EduFuture is your all-in-one platform for university admissions in Egypt. We connect ambitious students with top-tier universities, providing a seamless application experience.</p>
                     <ul class="about-features">
                         <li>✅ Browse 7+ prestigious universities</li>
                         <li>✅ Compare 25+ majors and programs</li>
@@ -103,22 +103,10 @@
                     </ul>
                 </div>
                 <div class="about-stats">
-                    <div class="about-stat-card">
-                        <h3>7+</h3>
-                        <p>Universities</p>
-                    </div>
-                    <div class="about-stat-card">
-                        <h3>25+</h3>
-                        <p>Programs</p>
-                    </div>
-                    <div class="about-stat-card">
-                        <h3>500+</h3>
-                        <p>Courses</p>
-                    </div>
-                    <div class="about-stat-card">
-                        <h3>15+</h3>
-                        <p>Students Placed</p>
-                    </div>
+                    <div class="about-stat-card"><h3>7+</h3><p>Universities</p></div>
+                    <div class="about-stat-card"><h3>25+</h3><p>Programs</p></div>
+                    <div class="about-stat-card"><h3>500+</h3><p>Courses</p></div>
+                    <div class="about-stat-card"><h3>15+</h3><p>Students</p></div>
                 </div>
             </div>
         </div>
@@ -133,21 +121,9 @@
             </div>
             <div class="contact-grid">
                 <div class="contact-info">
-                    <div class="contact-card">
-                        <span class="contact-icon">📧</span>
-                        <h4>Email</h4>
-                        <p>info@edugate.com</p>
-                    </div>
-                    <div class="contact-card">
-                        <span class="contact-icon">📞</span>
-                        <h4>Phone</h4>
-                        <p>+20 100 000 0000</p>
-                    </div>
-                    <div class="contact-card">
-                        <span class="contact-icon">📍</span>
-                        <h4>Location</h4>
-                        <p>Cairo, Egypt</p>
-                    </div>
+                    <div class="contact-card"><span class="contact-icon">📧</span><h4>Email</h4><p>info@edufuture.com</p></div>
+                    <div class="contact-card"><span class="contact-icon">📞</span><h4>Phone</h4><p>+20 100 000 0000</p></div>
+                    <div class="contact-card"><span class="contact-icon">📍</span><h4>Location</h4><p>Cairo, Egypt</p></div>
                 </div>
                 <form class="contact-form" onsubmit="handleContact(event)">
                     <input type="text" placeholder="Your Name" required>
@@ -164,7 +140,7 @@
         <div class="container">
             <div class="footer-content">
                 <div class="footer-brand">
-                    <h3>Edu<span>Gate</span></h3>
+                    <h3>Edu<span style="color:#ff6600;">Future</span></h3>
                     <p>Opening the gate to your future through quality education.</p>
                 </div>
                 <div class="footer-links">
@@ -180,7 +156,7 @@
                 </div>
             </div>
             <div class="footer-bottom">
-                <p>&copy; 2025 EduGate. All rights reserved.</p>
+                <p>&copy; 2025 EduFuture. All rights reserved.</p>
             </div>
         </div>
     </footer>
