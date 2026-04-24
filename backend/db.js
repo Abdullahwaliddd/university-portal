@@ -9,10 +9,17 @@ const pool = mysql.createPool({
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
-    ssl: false
+    ssl: false,
+    enableKeepAlive: true,
+    keepAliveInitialDelay: 0
 });
 
 const promisePool = pool.promise();
+
+// Handle connection errors
+pool.on('error', (err) => {
+    console.error('MySQL Pool Error:', err.message);
+});
 
 promisePool.query('SELECT 1')
     .then(() => console.log('✅ Database connected successfully'))
