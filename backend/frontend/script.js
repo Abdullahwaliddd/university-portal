@@ -51,22 +51,80 @@ async function loadHomePage() {
                 'linear-gradient(135deg, #ff9a9e, #fecfef)'
             ];
 
-            grid.innerHTML = universities.map((uni, index) => `
-                <div class="university-card" onclick="viewUniversity(${uni.University_ID})">
-                    <div class="uni-card-image" style="background: ${colors[index % colors.length]};">
-                        <span style="font-size:70px;">🏛️</span>
-                        <div class="uni-card-badge">${uni.Type || 'University'}</div>
-                    </div>
-                    <div class="uni-card-content">
-                        <h3>${uni.Name}</h3>
-                        <div class="uni-card-info">
-                            <span>📍 ${uni.Location || 'Egypt'}</span>
-                            <span>📧 ${uni.Email || 'Contact'}</span>
+            // University-specific images
+            const uniImages = {
+                1: 'images/galala.jpg', // Galala University
+                2: 'images/auc.jpg',
+                3: 'images/guc.jpg',
+                4: 'images/coventry.jpg',
+                5: 'images/msa.jpg',
+                6: 'images/must.jpg',
+                7: 'images/hnu.jpg'
+            };
+
+            // University-specific colors as fallback
+            const uniColors = {
+                1: 'linear-gradient(135deg, #1a237e, #3949ab)',
+                2: 'linear-gradient(135deg, #b71c1c, #e53935)',
+                3: 'linear-gradient(135deg, #1b5e20, #43a047)',
+                4: 'linear-gradient(135deg, #0d47a1, #1976d2)',
+                5: 'linear-gradient(135deg, #4a148c, #7b1fa2)',
+                6: 'linear-gradient(135deg, #e65100, #f57c00)',
+                7: 'linear-gradient(135deg, #004d40, #00897b)'
+            };
+
+            // University-specific icons as fallback
+            const uniIcons = {
+                1: '🔬',
+                2: '🏛️',
+                3: '💻',
+                4: '🎓',
+                5: '📚',
+                6: '🔭',
+                7: '⚡'
+            };
+
+            grid.innerHTML = universities.map((uni, index) => {
+                const imageUrl = uniImages[uni.University_ID];
+                const bgColor = uniColors[uni.University_ID] || colors[index % colors.length];
+                const icon = uniIcons[uni.University_ID] || '🏛️';
+                
+                if (imageUrl) {
+                    return `
+                        <div class="university-card" onclick="viewUniversity(${uni.University_ID})">
+                            <div class="uni-card-image" style="background-image: url('${imageUrl}'); background-size: cover; background-position: center;">
+                                <div class="uni-card-overlay"></div>
+                                <div class="uni-card-badge">${uni.Type || 'University'}</div>
+                            </div>
+                            <div class="uni-card-content">
+                                <h3>${uni.Name}</h3>
+                                <div class="uni-card-info">
+                                    <span>📍 ${uni.Location || 'Egypt'}</span>
+                                    <span>📧 ${uni.Email || 'Contact'}</span>
+                                </div>
+                                <p style="color:#666;font-size:13px;">Click to explore programs and apply</p>
+                            </div>
                         </div>
-                        <p style="color:#666;font-size:13px;">Click to explore programs and apply</p>
-                    </div>
-                </div>
-            `).join('');
+                    `;
+                } else {
+                    return `
+                        <div class="university-card" onclick="viewUniversity(${uni.University_ID})">
+                            <div class="uni-card-image" style="background: ${bgColor};">
+                                <span style="font-size:70px;">${icon}</span>
+                                <div class="uni-card-badge">${uni.Type || 'University'}</div>
+                            </div>
+                            <div class="uni-card-content">
+                                <h3>${uni.Name}</h3>
+                                <div class="uni-card-info">
+                                    <span>📍 ${uni.Location || 'Egypt'}</span>
+                                    <span>📧 ${uni.Email || 'Contact'}</span>
+                                </div>
+                                <p style="color:#666;font-size:13px;">Click to explore programs and apply</p>
+                            </div>
+                        </div>
+                    `;
+                }
+            }).join('');
         } else if (grid) {
             grid.innerHTML = '<p>No universities found.</p>';
         }
@@ -228,19 +286,25 @@ function displayUniversityDetail(uni) {
     const colors = ['#667eea', '#f093fb', '#4facfe', '#43e97b', '#fa709a', '#a18cd1', '#ff9a9e'];
     const randomColor = colors[uni.University_ID % colors.length];
     
-    // University-specific photos
+    // University-specific photos for gallery
     const uniPhotos = {
-        1: ['images/galala.jpg'], // Galala University
-        // Add more photos for other universities here
+        1: ['images/galala.jpg'],
+        2: [],
+        3: [],
+        4: [],
+        5: [],
+        6: [],
+        7: []
     };
     
     const photos = uniPhotos[uni.University_ID] || [];
+    const mainPhoto = photos.length > 0 ? photos[0] : null;
     
     container.innerHTML = `
         <div class="uni-detail-header">
             <div class="uni-detail-image" style="background: linear-gradient(135deg, ${randomColor}, ${randomColor}dd);">
-                ${photos.length > 0 ? 
-                    `<img src="${photos[0]}" alt="${uni.Name}" style="width:100%;height:100%;object-fit:cover;border-radius:20px;">` :
+                ${mainPhoto ? 
+                    `<img src="${mainPhoto}" alt="${uni.Name}" style="width:100%;height:100%;object-fit:cover;border-radius:20px;">` :
                     `<span style="font-size:100px;">🏛️</span>`
                 }
             </div>
@@ -319,18 +383,49 @@ function displayUniversityDetail(uni) {
 // Photo Modal Functions
 function openPhotoModal(photoSrc) {
     const modal = document.getElementById('photoModal');
+    if (!modal) return;
+    
     const modalImg = document.getElementById('modalImage');
     modal.style.display = 'block';
     modalImg.src = photoSrc;
+    
+    modal.onclick = function(e) {
+        if (e.target === modal || e.target.classList.contains('modal-close')) {
+            closePhotoModal();
+        }
+    };
 }
 
 function closePhotoModal() {
-    document.getElementById('photoModal').style.display = 'none';
+    const modal = document.getElementById('photoModal');
+    if (modal) modal.style.display = 'none';
 }
 
-// Update showStudyPlan function
+function updateNavAuth() {
+    const navAuth = document.getElementById('navAuth');
+    if (!navAuth) return;
+    
+    const student = JSON.parse(localStorage.getItem('currentStudent'));
+    
+    if (student) {
+        navAuth.innerHTML = `
+            <span style="margin-right:10px;font-size:14px;">👋 ${student.First_Name}</span>
+            <a href="dashboard.html" class="btn-primary">Dashboard</a>
+            <button class="btn-outline" onclick="logout()">Logout</button>
+        `;
+    } else {
+        navAuth.innerHTML = `
+            <a href="login.html" class="btn-outline">Login</a>
+            <a href="register.html" class="btn-primary">Register</a>
+        `;
+    }
+}
+
+// Show Study Plan Modal
 function showStudyPlan(collegeName, majors) {
     const modal = document.getElementById('studyPlanModal');
+    if (!modal) return;
+    
     const title = document.getElementById('modalTitle');
     const body = document.getElementById('modalBody');
     
@@ -407,36 +502,15 @@ function showStudyPlan(collegeName, majors) {
     
     body.innerHTML = html;
     modal.style.display = 'block';
+    
     modal.onclick = function(e) {
         if (e.target === modal) closeModal();
     };
 }
 
 function closeModal() {
-    document.getElementById('studyPlanModal').style.display = 'none';
-}
-function closeModal() {
-    document.getElementById('studyPlanModal').style.display = 'none';
-}
-
-function updateNavAuth() {
-    const navAuth = document.getElementById('navAuth');
-    if (!navAuth) return;
-    
-    const student = JSON.parse(localStorage.getItem('currentStudent'));
-    
-    if (student) {
-        navAuth.innerHTML = `
-            <span style="margin-right:10px;font-size:14px;">👋 ${student.First_Name}</span>
-            <a href="dashboard.html" class="btn-primary">Dashboard</a>
-            <button class="btn-outline" onclick="logout()">Logout</button>
-        `;
-    } else {
-        navAuth.innerHTML = `
-            <a href="login.html" class="btn-outline">Login</a>
-            <a href="register.html" class="btn-primary">Register</a>
-        `;
-    }
+    const modal = document.getElementById('studyPlanModal');
+    if (modal) modal.style.display = 'none';
 }
 
 // ============================================
@@ -623,6 +697,9 @@ function loadProfileTab(student) {
     `;
 }
 
+// ============================================
+// UTILITIES
+// ============================================
 function handleContact(event) {
     event.preventDefault();
     alert('Thank you for your message! We will get back to you soon.');
