@@ -228,10 +228,21 @@ function displayUniversityDetail(uni) {
     const colors = ['#667eea', '#f093fb', '#4facfe', '#43e97b', '#fa709a', '#a18cd1', '#ff9a9e'];
     const randomColor = colors[uni.University_ID % colors.length];
     
+    // University-specific photos
+    const uniPhotos = {
+        1: ['images/galala.jpg'], // Galala University
+        // Add more photos for other universities here
+    };
+    
+    const photos = uniPhotos[uni.University_ID] || [];
+    
     container.innerHTML = `
         <div class="uni-detail-header">
             <div class="uni-detail-image" style="background: linear-gradient(135deg, ${randomColor}, ${randomColor}dd);">
-                <span style="font-size:100px;">🏛️</span>
+                ${photos.length > 0 ? 
+                    `<img src="${photos[0]}" alt="${uni.Name}" style="width:100%;height:100%;object-fit:cover;border-radius:20px;">` :
+                    `<span style="font-size:100px;">🏛️</span>`
+                }
             </div>
             <div class="uni-detail-info">
                 <h1>${uni.Name}</h1>
@@ -256,7 +267,21 @@ function displayUniversityDetail(uni) {
             </div>
         </div>
         
-        <h2 style="font-size:32px;margin-bottom:20px;">Colleges & Programs</h2>
+        <!-- Photo Gallery Section -->
+        ${photos.length > 0 ? `
+        <div class="photo-gallery-section">
+            <h2 style="font-size:28px;margin-bottom:20px;">📸 Campus Photos</h2>
+            <div class="photo-gallery">
+                ${photos.map((photo, index) => `
+                    <div class="gallery-item" onclick="openPhotoModal('${photo}')">
+                        <img src="${photo}" alt="Campus Photo ${index + 1}">
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+        ` : ''}
+        
+        <h2 style="font-size:32px;margin:30px 0 20px;">Colleges & Programs</h2>
         <p style="color:#666;margin-bottom:20px;">Click on a college to view detailed study plan</p>
         <div class="colleges-grid">
             ${uni.colleges && uni.colleges.length > 0 ? 
@@ -285,14 +310,25 @@ function displayUniversityDetail(uni) {
                     <h3 id="modalTitle">Study Plan</h3>
                     <button class="modal-close" onclick="closeModal()">&times;</button>
                 </div>
-                <div class="modal-body" id="modalBody">
-                </div>
+                <div class="modal-body" id="modalBody"></div>
             </div>
         </div>
     `;
 }
 
-// Show Study Plan Modal
+// Photo Modal Functions
+function openPhotoModal(photoSrc) {
+    const modal = document.getElementById('photoModal');
+    const modalImg = document.getElementById('modalImage');
+    modal.style.display = 'block';
+    modalImg.src = photoSrc;
+}
+
+function closePhotoModal() {
+    document.getElementById('photoModal').style.display = 'none';
+}
+
+// Update showStudyPlan function
 function showStudyPlan(collegeName, majors) {
     const modal = document.getElementById('studyPlanModal');
     const title = document.getElementById('modalTitle');
@@ -323,7 +359,6 @@ function showStudyPlan(collegeName, majors) {
                     `;
                     
                     if (plan.courses && plan.courses.length > 0) {
-                        // Group courses by level
                         const levels = {};
                         plan.courses.forEach(course => {
                             const level = course.Level || 'Other';
@@ -372,13 +407,14 @@ function showStudyPlan(collegeName, majors) {
     
     body.innerHTML = html;
     modal.style.display = 'block';
-    
-    // Close when clicking outside
     modal.onclick = function(e) {
         if (e.target === modal) closeModal();
     };
 }
 
+function closeModal() {
+    document.getElementById('studyPlanModal').style.display = 'none';
+}
 function closeModal() {
     document.getElementById('studyPlanModal').style.display = 'none';
 }
