@@ -209,3 +209,79 @@ router.get('/colleges', async (req, res) => {
 });
 
 module.exports = router;
+const multer = require('multer');
+const path = require('path');
+
+// Storage config
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, path.join(__dirname, '..', 'frontend', 'images'));
+    },
+    filename: (req, file, cb) => {
+        const uniId = req.params.id;
+        cb(null, `uni-${uniId}.jpg`);
+    }
+});
+const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } }); // 5MB
+
+// Upload photo for a university
+router.post('/universities/:id/photo', upload.single('photo'), async (req, res) => {
+    try {
+        // The file is saved. Update the university record with the path.
+        const photoPath = `/images/uni-${req.params.id}.jpg`;
+        await db.query('UPDATE university SET photo = ? WHERE University_ID = ?', [photoPath, req.params.id]);
+        res.json({ message: 'Photo uploaded successfully', path: photoPath });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});// --------------------- STUDY PLANS & COURSES ---------------------
+// Get all study plans with related info
+router.get('/studyplans', async (req, res) => {
+    try {
+        const [rows] = await db.query(`
+            SELECT sp.*, m.Name as Major_Name, u.Name as University_Name
+            FROM study_plan sp
+            JOIN major m ON sp.Major_ID = m.Major_ID
+            JOIN college c ON m.College_ID = c.College_ID
+            JOIN university u ON c.University_ID = u.University_ID
+            ORDER BY sp.Plan_ID
+        `);
+        res.json(rows);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Get courses for a specific plan
+router.get('/studyplans/:planId/courses', async (req, res) => {
+    try {
+        const [rows] = await db.query('SELECT * FROM course WHERE Plan_ID = ? ORDER BY Semester_No', [req.params.planId]);
+        res.json(rows);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Add a course to a plan
+router.post('/studyplans/:planId/courses', async (req, res) => {
+    try {
+        const { Course_Code, Course_Name, Credit_Hours, Semester_No, Level } = req.body;
+        const [result] = await db.query(
+            'INSERT INTO course (Course_Code, Course_Name, Credit_Hours, Semester_No, Level, Plan_ID) VALUES (?, ?, ?, ?, ?, ?)',
+            [Course_Code, Course_Name, Credit_Hours, Semester_No, Level, req.params.planId]
+        );
+        res.status(201).json({ id: result.insertId });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Delete a course
+router.delete('/courses/:id', async (req, res) => {
+    try {
+        await db.query('DELETE FROM course WHERE Course_ID = ?', [req.params.id]);
+        res.json({ message: 'Course deleted' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
