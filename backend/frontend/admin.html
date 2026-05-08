@@ -3,327 +3,340 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Panel - EduFuture</title>
-    <link rel="stylesheet" href="style.css">
+    <title>EduFuture Admin</title>
     <style>
-        .admin-container { display: grid; grid-template-columns: 250px 1fr; min-height: 100vh; }
-        .admin-sidebar { background: #0a0a1a; color: white; padding: 20px; }
-        .admin-sidebar h2 { color: #ff6600; margin-bottom: 30px; font-size: 20px; }
-        .admin-menu { list-style: none; padding: 0; }
-        .admin-menu li { margin-bottom: 5px; }
-        .admin-menu a { display: block; padding: 12px 15px; color: #ccc; text-decoration: none; border-radius: 8px; transition: 0.3s; cursor: pointer; font-size: 14px; }
-        .admin-menu a:hover, .admin-menu a.active { background: rgba(255,102,0,0.2); color: #ff6600; }
-        .admin-main { padding: 30px; background: #f5f5f5; overflow-y: auto; }
-        .stat-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 30px; }
-        .stat-card { background: white; padding: 20px; border-radius: 10px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .stat-card h3 { font-size: 32px; color: #ff6600; margin: 0; }
-        .stat-card p { color: #666; margin: 5px 0 0; }
-        .admin-table { background: white; border-radius: 10px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); overflow-x: auto; }
-        .admin-table table { width: 100%; border-collapse: collapse; font-size: 13px; }
-        .admin-table th { background: #1a237e; color: white; padding: 10px; text-align: left; }
-        .admin-table td { padding: 10px; border-bottom: 1px solid #eee; }
-        .btn-sm { padding: 5px 12px; border-radius: 5px; border: none; cursor: pointer; font-size: 11px; margin: 2px; color: white; }
-        .btn-del { background: #f44336; }
-        .btn-accept { background: #4CAF50; }
-        .btn-reject { background: #ff9800; }
-        .login-container { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: linear-gradient(135deg, #1a237e, #0d47a1); }
-        .login-box { background: white; padding: 40px; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); max-width: 400px; width: 100%; text-align: center; }
-        .login-box h1 { color: #ff6600; margin-bottom: 5px; }
-        .login-box p { color: #666; margin-bottom: 20px; }
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; }
-        .modal-content { background: white; border-radius: 15px; max-width: 500px; margin: 50px auto; padding: 30px; }
+        :root {
+            --oxford: #192338;
+            --cadet: #1E2E4F;
+            --yinmn: #31487A;
+            --jordy: #8FB3E2;
+            --lavender: #D9E1F1;
+            --white: #fff;
+            --dark-bg: #0d1117;
+            --card-bg: #161b22;
+            --border: #30363d;
+            --text: #c9d1d9;
+            --text-light: #8b949e;
+            --accent: #58a6ff;
+            --danger: #f85149;
+            --success: #3fb950;
+            --warning: #d2991d;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--dark-bg); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
+        
+        /* SIDEBAR */
+        .sidebar { width: 240px; background: var(--card-bg); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 20px; flex-shrink: 0; }
+        .sidebar h2 { font-size: 20px; margin-bottom: 30px; color: var(--jordy); }
+        .sidebar nav a { display: block; padding: 10px 15px; color: var(--text-light); text-decoration: none; border-radius: 8px; margin-bottom: 5px; cursor: pointer; transition: 0.2s; }
+        .sidebar nav a:hover, .sidebar nav a.active { background: var(--yinmn); color: white; }
+        
+        /* MAIN */
+        .main { flex: 1; overflow-y: auto; padding: 30px; }
+        .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .topbar h1 { font-size: 28px; }
+        .btn { padding: 8px 18px; border-radius: 6px; border: none; cursor: pointer; font-weight: 600; font-size: 14px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+        .btn-primary { background: var(--yinmn); color: white; }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-accept { background: var(--success); color: white; }
+        .btn-reject { background: var(--warning); color: black; }
+        .btn-sm { padding: 4px 10px; font-size: 12px; }
+        
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 15px; margin-bottom: 30px; }
+        .stat-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+        .stat-card h3 { font-size: 36px; color: var(--accent); }
+        .stat-card p { color: var(--text-light); margin-top: 5px; }
+        
+        .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); }
+        th { color: var(--text-light); font-weight: 600; }
+        
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center; }
+        .modal.active { display: flex; }
+        .modal-content { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 30px; width: 500px; max-width: 90%; }
+        .modal-content h3 { margin-bottom: 20px; }
         .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 13px; }
-        .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px; box-sizing: border-box; }
-        .btn-primary { padding: 10px 20px; background: #ff6600; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; }
-        .btn-outline { padding: 10px 20px; background: transparent; color: #ff6600; border: 1px solid #ff6600; border-radius: 5px; cursor: pointer; font-size: 14px; }
-        .btn-full { width: 100%; }
-        .message { margin-top: 15px; padding: 10px; border-radius: 5px; display: none; }
-        .message.error { display: block; background: #ffebee; color: #c62828; }
-        .section-title { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .section-title h2 { margin: 0; }
-        .status-accepted { color: #2e7d32; font-weight: 600; }
-        .status-rejected { color: #c62828; font-weight: 600; }
-        .status-pending { color: #f57f17; font-weight: 600; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 13px; color: var(--text-light); }
+        .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--dark-bg); color: var(--text); }
+        .flex { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+        
+        .status { padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+        .status.accepted { background: rgba(63,185,80,0.2); color: var(--success); }
+        .status.rejected { background: rgba(248,81,73,0.2); color: var(--danger); }
+        .status.pending { background: rgba(210,153,29,0.2); color: var(--warning); }
+        
+        .badge { background: var(--yinmn); padding: 3px 8px; border-radius: 12px; font-size: 12px; }
+        
         @media (max-width: 768px) {
-            .admin-container { grid-template-columns: 1fr; }
-            .admin-sidebar { display: none; }
+            .sidebar { display: none; }
+            .main { padding: 20px; }
         }
     </style>
 </head>
 <body>
-
-<!-- Login Page -->
-<div id="loginPage" class="login-container">
-    <div class="login-box">
-        <h1>🔐 EduFuture Admin</h1>
-        <p>Enter admin credentials to continue</p>
-        <form onsubmit="adminLogin(event)">
-            <div class="form-group">
-                <input type="email" id="adminEmail" placeholder="Admin Email" required style="width:100%;padding:12px;border:1px solid #ddd;border-radius:5px;">
-            </div>
-            <div class="form-group">
-                <input type="password" id="adminPassword" placeholder="Password" required style="width:100%;padding:12px;border:1px solid #ddd;border-radius:5px;">
-            </div>
-            <button type="submit" class="btn-primary btn-full" style="padding:12px;">Login</button>
-        </form>
-        <div id="loginMsg" class="message"></div>
-    </div>
-</div>
-
-<!-- Admin Dashboard -->
-<div id="adminDashboard" style="display:none;">
-    <div class="admin-container">
-        <div class="admin-sidebar">
-            <h2>⚙️ EduFuture</h2>
-            <p style="color:#888;font-size:12px;margin-top:-20px;margin-bottom:20px;">Admin Panel</p>
-            <ul class="admin-menu">
-                <li><a class="active" onclick="showTab('dashboard', this)">📊 Dashboard</a></li>
-                <li><a onclick="showTab('students', this)">👨‍🎓 Students</a></li>
-                <li><a onclick="showTab('applications', this)">📝 Applications</a></li>
-                <li><a onclick="showTab('universities', this)">🏛️ Universities</a></li>
-                <li><a onclick="showTab('majors', this)">🎓 Majors</a></li>
-            </ul>
-            <button class="btn-outline" onclick="adminLogout()" style="margin-top:20px;width:100%;">🚪 Logout</button>
-        </div>
-        <div class="admin-main" id="adminContent">
-            <p>Loading...</p>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <h2>🎓 EduFuture</h2>
+        <nav>
+            <a class="active" onclick="showTab('dashboard', this)">📊 Dashboard</a>
+            <a onclick="showTab('students', this)">👨‍🎓 Students</a>
+            <a onclick="showTab('applications', this)">📝 Applications</a>
+            <a onclick="showTab('universities', this)">🏛️ Universities</a>
+            <a onclick="showTab('majors', this)">🎓 Majors</a>
+        </nav>
+        <div style="margin-top:auto;">
+            <button class="btn btn-outline" onclick="adminLogout()" style="width:100%">🚪 Logout</button>
         </div>
     </div>
-</div>
 
-<script>
-const API = window.location.origin + '/api/admin';
+    <!-- Main Content -->
+    <div class="main" id="mainContent">
+        <!-- Dynamic content loaded here -->
+    </div>
 
-// Check if already logged in
-if (localStorage.getItem('adminUser')) {
-    document.getElementById('loginPage').style.display = 'none';
-    document.getElementById('adminDashboard').style.display = 'block';
-    showTab('dashboard');
-}
+    <!-- Modal (for forms) -->
+    <div id="modal" class="modal">
+        <div class="modal-content" id="modalBody"></div>
+    </div>
 
-function adminLogin(e) {
-    e.preventDefault();
-    const email = document.getElementById('adminEmail').value;
-    const password = document.getElementById('adminPassword').value;
-    
-    fetch(`${API}/login`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({email, password})
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (data.admin) {
-            localStorage.setItem('adminUser', JSON.stringify(data.admin));
-            document.getElementById('loginPage').style.display = 'none';
-            document.getElementById('adminDashboard').style.display = 'block';
-            showTab('dashboard');
-        } else {
-            const msg = document.getElementById('loginMsg');
-            msg.className = 'message error';
-            msg.textContent = 'Invalid credentials! Use admin@edufuture.com / admin123';
+    <script>
+        const API = window.location.origin + '/api/admin';
+        const currentAdmin = JSON.parse(localStorage.getItem('adminUser') || 'null');
+        if (!currentAdmin) {
+            // Not logged in, redirect to login (simple inline login)
+            document.body.innerHTML = `
+                <div style="display:flex;align-items:center;justify-content:center;height:100vh;background:var(--dark-bg);">
+                    <div class="card" style="width:400px;padding:30px;">
+                        <h2 style="margin-bottom:20px;color:var(--jordy);">Admin Login</h2>
+                        <form onsubmit="adminLogin(event)">
+                            <div class="form-group"><input type="email" id="adminEmail" placeholder="Email" required style="width:100%;padding:12px;border:1px solid var(--border);border-radius:6px;background:var(--dark-bg);color:var(--text);"></div>
+                            <div class="form-group"><input type="password" id="adminPassword" placeholder="Password" required style="width:100%;padding:12px;border:1px solid var(--border);border-radius:6px;background:var(--dark-bg);color:var(--text);"></div>
+                            <button type="submit" class="btn btn-primary" style="width:100%">Login</button>
+                        </form>
+                        <div id="loginMsg" style="margin-top:15px;color:var(--danger);"></div>
+                    </div>
+                </div>`;
         }
-    })
-    .catch(() => {
-        const msg = document.getElementById('loginMsg');
-        msg.className = 'message error';
-        msg.textContent = 'Connection error. Try again.';
-    });
-}
 
-function adminLogout() {
-    localStorage.removeItem('adminUser');
-    location.reload();
-}
+        function adminLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('adminEmail').value;
+            const password = document.getElementById('adminPassword').value;
+            fetch(`${API}/login`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({email, password})
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.admin) {
+                    localStorage.setItem('adminUser', JSON.stringify(data.admin));
+                    location.reload();
+                } else {
+                    document.getElementById('loginMsg').textContent = 'Invalid credentials';
+                }
+            });
+        }
 
-function showTab(tab, el) {
-    document.querySelectorAll('.admin-menu a').forEach(a => a.classList.remove('active'));
-    if (el) el.classList.add('active');
-    
-    switch(tab) {
-        case 'dashboard': loadDashboard(); break;
-        case 'students': loadStudents(); break;
-        case 'applications': loadApplications(); break;
-        case 'universities': loadUniversities(); break;
-        case 'majors': loadMajors(); break;
-    }
-}
+        function adminLogout() { localStorage.removeItem('adminUser'); location.reload(); }
 
-async function loadDashboard() {
-    try {
-        const r = await fetch(`${API}/stats`);
-        const stats = await r.json();
-        document.getElementById('adminContent').innerHTML = `
-            <h2>📊 Dashboard Overview</h2>
-            <div class="stat-cards">
-                <div class="stat-card"><h3>${stats.universities}</h3><p>Universities</p></div>
-                <div class="stat-card"><h3>${stats.colleges}</h3><p>Colleges</p></div>
-                <div class="stat-card"><h3>${stats.majors}</h3><p>Majors</p></div>
-                <div class="stat-card"><h3>${stats.students}</h3><p>Students</p></div>
-                <div class="stat-card"><h3>${stats.applications}</h3><p>Applications</p></div>
-                <div class="stat-card"><h3>${stats.courses}</h3><p>Courses</p></div>
-            </div>
-            <p style="color:#666;">Welcome, Admin! Use the sidebar to manage the system.</p>
-        `;
-    } catch(e) {
-        document.getElementById('adminContent').innerHTML = '<p style="color:red;">Error loading dashboard</p>';
-    }
-}
+        function showTab(tab, el) {
+            document.querySelectorAll('.sidebar nav a').forEach(a => a.classList.remove('active'));
+            if (el) el.classList.add('active');
+            switch(tab) {
+                case 'dashboard': loadDashboard(); break;
+                case 'students': loadStudents(); break;
+                case 'applications': loadApplications(); break;
+                case 'universities': loadUniversities(); break;
+                case 'majors': loadMajors(); break;
+            }
+        }
 
-async function loadStudents() {
-    const r = await fetch(`${API}/students`);
-    const students = await r.json();
-    document.getElementById('adminContent').innerHTML = `
-        <div class="section-title"><h2>👨‍🎓 Students (${students.length})</h2></div>
-        <div class="admin-table"><table>
-            <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Gender</th><th>Phone</th><th>Address</th><th>Action</th></tr></thead>
-            <tbody>${students.map(s => `
-                <tr><td>${s.Student_ID}</td><td>${s.First_Name} ${s.Last_Name}</td><td>${s.Email}</td><td>${s.Gender||'-'}</td><td>${s.Phone||'-'}</td><td>${s.Address||'-'}</td>
-                <td><button class="btn-sm btn-del" onclick="deleteStudent(${s.Student_ID})">Delete</button></td></tr>
-            `).join('')}</tbody>
-        </table></div>
-    `;
-}
+        async function loadDashboard() {
+            const res = await fetch(`${API}/stats`);
+            const stats = await res.json();
+            document.getElementById('mainContent').innerHTML = `
+                <div class="topbar"><h1>Dashboard</h1></div>
+                <div class="stats-grid">
+                    <div class="stat-card"><h3>${stats.universities}</h3><p>Universities</p></div>
+                    <div class="stat-card"><h3>${stats.colleges}</h3><p>Colleges</p></div>
+                    <div class="stat-card"><h3>${stats.majors}</h3><p>Majors</p></div>
+                    <div class="stat-card"><h3>${stats.students}</h3><p>Students</p></div>
+                    <div class="stat-card"><h3>${stats.applications}</h3><p>Applications</p></div>
+                    <div class="stat-card"><h3>${stats.courses}</h3><p>Courses</p></div>
+                </div>`;
+        }
 
-async function deleteStudent(id) {
-    if (confirm('Are you sure you want to delete this student? This cannot be undone.')) {
-        await fetch(`${API}/students/${id}`, {method: 'DELETE'});
-        loadStudents();
-    }
-}
+        // STUDENTS
+        async function loadStudents() {
+            const res = await fetch(`${API}/students`);
+            const students = await res.json();
+            document.getElementById('mainContent').innerHTML = `
+                <div class="topbar"><h1>Students</h1></div>
+                <div class="card"><table>
+                    <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Gender</th><th>Phone</th><th>Action</th></tr></thead>
+                    <tbody>${students.map(s => `
+                        <tr><td>${s.Student_ID}</td><td>${s.First_Name} ${s.Last_Name}</td><td>${s.Email}</td><td>${s.Gender||'-'}</td><td>${s.Phone||'-'}</td>
+                        <td><button class="btn btn-danger btn-sm" onclick="deleteStudent(${s.Student_ID})">Delete</button></td></tr>
+                    `).join('')}</tbody>
+                </table></div>`;
+        }
+        async function deleteStudent(id) { if(confirm('Delete this student?')) { await fetch(`${API}/students/${id}`, {method:'DELETE'}); loadStudents(); } }
 
-async function loadApplications() {
-    const r = await fetch(`${API}/applications`);
-    const apps = await r.json();
-    document.getElementById('adminContent').innerHTML = `
-        <div class="section-title"><h2>📝 Applications (${apps.length})</h2></div>
-        <div class="admin-table"><table>
-            <thead><tr><th>ID</th><th>Student</th><th>Major</th><th>University</th><th>GPA</th><th>Score</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
-            <tbody>${apps.map(a => `
-                <tr>
-                    <td>${a.Application_ID}</td>
-                    <td>${a.First_Name} ${a.Last_Name}</td>
-                    <td>${a.Major_Name}</td>
-                    <td>${a.University_Name}</td>
-                    <td>${a.GPA}</td>
-                    <td>${a.High_School_Score}</td>
-                    <td class="status-${a.Status.toLowerCase()}">${a.Status}</td>
-                    <td>${a.Application_Date ? new Date(a.Application_Date).toLocaleDateString() : '-'}</td>
-                    <td>
-                        <button class="btn-sm btn-accept" onclick="updateApp(${a.Application_ID}, 'Accepted')">Accept</button>
-                        <button class="btn-sm btn-reject" onclick="updateApp(${a.Application_ID}, 'Rejected')">Reject</button>
-                        <button class="btn-sm btn-del" onclick="deleteApp(${a.Application_ID})">Delete</button>
-                    </td>
-                </tr>
-            `).join('')}</tbody>
-        </table></div>
-    `;
-}
+        // APPLICATIONS
+        async function loadApplications() {
+            const res = await fetch(`${API}/applications`);
+            const apps = await res.json();
+            document.getElementById('mainContent').innerHTML = `
+                <div class="topbar"><h1>Applications</h1></div>
+                <div class="card"><table>
+                    <thead><tr><th>ID</th><th>Student</th><th>Major</th><th>University</th><th>Status</th><th>Actions</th></tr></thead>
+                    <tbody>${apps.map(a => `
+                        <tr>
+                            <td>${a.Application_ID}</td><td>${a.First_Name} ${a.Last_Name}</td><td>${a.Major_Name}</td><td>${a.University_Name}</td>
+                            <td><span class="status ${a.Status.toLowerCase()}">${a.Status}</span></td>
+                            <td>
+                                <button class="btn btn-accept btn-sm" onclick="updateApp(${a.Application_ID},'Accepted')">Accept</button>
+                                <button class="btn btn-reject btn-sm" onclick="updateApp(${a.Application_ID},'Rejected')">Reject</button>
+                                <button class="btn btn-danger btn-sm" onclick="deleteApp(${a.Application_ID})">Delete</button>
+                            </td>
+                        </tr>
+                    `).join('')}</tbody>
+                </table></div>`;
+        }
+        async function updateApp(id, status) { await fetch(`${API}/applications/${id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status})}); loadApplications(); }
+        async function deleteApp(id) { if(confirm('Delete this application?')) { await fetch(`${API}/applications/${id}`, {method:'DELETE'}); loadApplications(); } }
 
-async function updateApp(id, status) {
-    await fetch(`${API}/applications/${id}`, {
-        method: 'PUT',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({status})
-    });
-    loadApplications();
-}
+        // UNIVERSITIES
+        async function loadUniversities() {
+            const res = await fetch(`${API}/universities`);
+            const unis = await res.json();
+            document.getElementById('mainContent').innerHTML = `
+                <div class="topbar"><h1>Universities</h1><button class="btn btn-primary" onclick="openUniModal()">+ Add University</button></div>
+                <div class="stats-grid" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));">
+                    ${unis.map(u => `
+                        <div class="card" style="padding:15px;">
+                            <h3>${u.Name}</h3>
+                            <p style="color:var(--text-light);font-size:13px;">${u.Type||'N/A'} | ${u.Location||'N/A'}</p>
+                            <div style="margin-top:10px;">
+                                <button class="btn btn-outline btn-sm" onclick="openUniModal(${u.University_ID})">Edit</button>
+                                <button class="btn btn-danger btn-sm" onclick="deleteUni(${u.University_ID})">Delete</button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>`;
+        }
+        async function openUniModal(id = null) {
+            const modal = document.getElementById('modal');
+            const isEdit = id !== null;
+            let uni = {Name:'', Type:'', Location:'', Email:'', Phone:'', Website:''};
+            if (isEdit) {
+                const res = await fetch(`${API}/universities/${id}`);
+                uni = await res.json();
+            }
+            document.getElementById('modalBody').innerHTML = `
+                <h3>${isEdit ? 'Edit' : 'Add'} University</h3>
+                <div class="form-group"><label>Name</label><input id="uniName" value="${uni.Name||''}"></div>
+                <div class="form-group"><label>Type</label><input id="uniType" value="${uni.Type||''}"></div>
+                <div class="form-group"><label>Location</label><input id="uniLoc" value="${uni.Location||''}"></div>
+                <div class="form-group"><label>Email</label><input id="uniEmail" value="${uni.Email||''}"></div>
+                <div class="form-group"><label>Phone</label><input id="uniPhone" value="${uni.Phone||''}"></div>
+                <div class="form-group"><label>Website</label><input id="uniWeb" value="${uni.Website||''}"></div>
+                <div class="flex">
+                    <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+                    <button class="btn btn-primary" onclick="saveUni(${isEdit ? id : null})">Save</button>
+                </div>`;
+            modal.classList.add('active');
+        }
+        async function saveUni(id) {
+            const data = {
+                Name: document.getElementById('uniName').value,
+                Type: document.getElementById('uniType').value,
+                Location: document.getElementById('uniLoc').value,
+                Email: document.getElementById('uniEmail').value,
+                Phone: document.getElementById('uniPhone').value,
+                Website: document.getElementById('uniWeb').value
+            };
+            const url = id ? `${API}/universities/${id}` : `${API}/universities`;
+            const method = id ? 'PUT' : 'POST';
+            await fetch(url, {method, headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
+            closeModal();
+            loadUniversities();
+        }
+        async function deleteUni(id) { if(confirm('Delete this university?')) { await fetch(`${API}/universities/${id}`, {method:'DELETE'}); loadUniversities(); } }
 
-async function deleteApp(id) {
-    if (confirm('Delete this application?')) {
-        await fetch(`${API}/applications/${id}`, {method: 'DELETE'});
-        loadApplications();
-    }
-}
+        // MAJORS
+        async function loadMajors() {
+            const [majorsRes, collegesRes] = await Promise.all([
+                fetch(`${API}/majors`),
+                fetch(`${API}/colleges`)
+            ]);
+            const majors = await majorsRes.json();
+            const colleges = await collegesRes.json();
+            // store colleges globally for modal
+            window.collegesList = colleges;
+            document.getElementById('mainContent').innerHTML = `
+                <div class="topbar"><h1>Majors</h1><button class="btn btn-primary" onclick="openMajorModal()">+ Add Major</button></div>
+                <div class="card"><table>
+                    <thead><tr><th>ID</th><th>Name</th><th>Degree</th><th>College</th><th>University</th><th>Actions</th></tr></thead>
+                    <tbody>${majors.map(m => `
+                        <tr><td>${m.Major_ID}</td><td>${m.Name}</td><td>${m.Degree_Type||'-'}</td><td>${m.College_Name}</td><td>${m.University_Name}</td>
+                        <td>
+                            <button class="btn btn-outline btn-sm" onclick="openMajorModal(${m.Major_ID})">Edit</button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteMajor(${m.Major_ID})">Delete</button>
+                        </td></tr>
+                    `).join('')}</tbody>
+                </table></div>`;
+        }
+        async function openMajorModal(id = null) {
+            const modal = document.getElementById('modal');
+            const isEdit = id !== null;
+            let major = {Name:'', Degree_Type:'', Duration_Years:'', Description:'', College_ID:''};
+            if (isEdit) {
+                const res = await fetch(`${API}/majors/${id}`);
+                major = await res.json();
+            }
+            const colleges = window.collegesList || [];
+            document.getElementById('modalBody').innerHTML = `
+                <h3>${isEdit ? 'Edit' : 'Add'} Major</h3>
+                <div class="form-group"><label>Name</label><input id="majorName" value="${major.Name||''}"></div>
+                <div class="form-group"><label>Degree Type</label><input id="majorDegree" value="${major.Degree_Type||''}"></div>
+                <div class="form-group"><label>Duration (Years)</label><input id="majorDuration" value="${major.Duration_Years||''}" type="number"></div>
+                <div class="form-group"><label>Description</label><input id="majorDesc" value="${major.Description||''}"></div>
+                <div class="form-group"><label>College</label>
+                    <select id="majorCollege">
+                        <option value="">Select College</option>
+                        ${colleges.map(c => `<option value="${c.College_ID}" ${major.College_ID == c.College_ID ? 'selected' : ''}>${c.Name} (${c.University_Name})</option>`).join('')}
+                    </select>
+                </div>
+                <div class="flex">
+                    <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+                    <button class="btn btn-primary" onclick="saveMajor(${isEdit ? id : null})">Save</button>
+                </div>`;
+            modal.classList.add('active');
+        }
+        async function saveMajor(id) {
+            const data = {
+                Name: document.getElementById('majorName').value,
+                Degree_Type: document.getElementById('majorDegree').value,
+                Duration_Years: document.getElementById('majorDuration').value,
+                Description: document.getElementById('majorDesc').value,
+                College_ID: document.getElementById('majorCollege').value
+            };
+            const url = id ? `${API}/majors/${id}` : `${API}/majors`;
+            const method = id ? 'PUT' : 'POST';
+            await fetch(url, {method, headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
+            closeModal();
+            loadMajors();
+        }
+        async function deleteMajor(id) { if(confirm('Delete this major?')) { await fetch(`${API}/majors/${id}`, {method:'DELETE'}); loadMajors(); } }
 
-async function loadUniversities() {
-    const r = await fetch(`${API}/universities`);
-    const unis = await r.json();
-    document.getElementById('adminContent').innerHTML = `
-        <div class="section-title">
-            <h2>🏛️ Universities (${unis.length})</h2>
-            <button class="btn-primary" onclick="showAddUni()">+ Add University</button>
-        </div>
-        <div class="admin-table"><table>
-            <thead><tr><th>ID</th><th>Name</th><th>Type</th><th>Location</th><th>Email</th><th>Phone</th><th>Actions</th></tr></thead>
-            <tbody>${unis.map(u => `
-                <tr><td>${u.University_ID}</td><td>${u.Name}</td><td>${u.Type||'-'}</td><td>${u.Location||'-'}</td><td>${u.Email||'-'}</td><td>${u.Phone||'-'}</td>
-                <td><button class="btn-sm btn-del" onclick="deleteUni(${u.University_ID})">Delete</button></td></tr>
-            `).join('')}</tbody>
-        </table></div>
-    `;
-}
+        function closeModal() { document.getElementById('modal').classList.remove('active'); }
 
-function showAddUni() {
-    const modal = document.createElement('div');
-    modal.className = 'modal';
-    modal.style.display = 'block';
-    modal.innerHTML = `
-        <div class="modal-content">
-            <h3>Add New University</h3>
-            <form onsubmit="addUni(event)">
-                <div class="form-group"><label>Name</label><input id="uniName" required></div>
-                <div class="form-group"><label>Type</label><input id="uniType" placeholder="Private/Public"></div>
-                <div class="form-group"><label>Location</label><input id="uniLoc"></div>
-                <div class="form-group"><label>Email</label><input id="uniEmail" type="email"></div>
-                <div class="form-group"><label>Phone</label><input id="uniPhone"></div>
-                <div class="form-group"><label>Website</label><input id="uniWeb"></div>
-                <button type="submit" class="btn-primary">Add University</button>
-                <button type="button" class="btn-outline" onclick="this.closest('.modal').remove()">Cancel</button>
-            </form>
-        </div>`;
-    document.body.appendChild(modal);
-    modal.onclick = function(e) { if (e.target === modal) modal.remove(); };
-}
-
-async function addUni(e) {
-    e.preventDefault();
-    const data = {
-        Name: document.getElementById('uniName').value,
-        Type: document.getElementById('uniType').value,
-        Location: document.getElementById('uniLoc').value,
-        Email: document.getElementById('uniEmail').value,
-        Phone: document.getElementById('uniPhone').value,
-        Website: document.getElementById('uniWeb').value
-    };
-    await fetch(`${API}/universities`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(data)
-    });
-    document.querySelector('.modal').remove();
-    loadUniversities();
-}
-
-async function deleteUni(id) {
-    if (confirm('Delete this university? This will also remove its colleges and majors!')) {
-        await fetch(`${API}/universities/${id}`, {method: 'DELETE'});
-        loadUniversities();
-    }
-}
-
-async function loadMajors() {
-    const r = await fetch(`${API}/majors`);
-    const majors = await r.json();
-    document.getElementById('adminContent').innerHTML = `
-        <div class="section-title"><h2>🎓 Majors (${majors.length})</h2></div>
-        <div class="admin-table"><table>
-            <thead><tr><th>ID</th><th>Name</th><th>Degree</th><th>Duration</th><th>College</th><th>University</th><th>Action</th></tr></thead>
-            <tbody>${majors.map(m => `
-                <tr><td>${m.Major_ID}</td><td>${m.Name}</td><td>${m.Degree_Type||'-'}</td><td>${m.Duration_Years||'-'} yrs</td><td>${m.College_Name}</td><td>${m.University_Name}</td>
-                <td><button class="btn-sm btn-del" onclick="deleteMajor(${m.Major_ID})">Delete</button></td></tr>
-            `).join('')}</tbody>
-        </table></div>
-    `;
-}
-
-async function deleteMajor(id) {
-    if (confirm('Delete this major?')) {
-        await fetch(`${API}/majors/${id}`, {method: 'DELETE'});
-        loadMajors();
-    }
-}
-</script>
+        // Initial load
+        if (currentAdmin) { showTab('dashboard'); }
+    </script>
 </body>
 </html>

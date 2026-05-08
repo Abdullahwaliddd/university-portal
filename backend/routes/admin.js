@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 
-// Admin Login
+// --------------------- AUTH ---------------------
 router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -10,18 +10,14 @@ router.post('/login', async (req, res) => {
             'SELECT * FROM admin WHERE email = ? AND password = ?',
             [email, password]
         );
-        
-        if (rows.length === 0) {
-            return res.status(401).json({ error: 'Invalid admin credentials' });
-        }
-        
+        if (rows.length === 0) return res.status(401).json({ error: 'Invalid admin credentials' });
         res.json({ admin: rows[0], message: 'Admin login successful' });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
 
-// Get dashboard stats
+// --------------------- STATS ---------------------
 router.get('/stats', async (req, res) => {
     try {
         const [universities] = await db.query('SELECT COUNT(*) as count FROM university');
@@ -30,7 +26,6 @@ router.get('/stats', async (req, res) => {
         const [majors] = await db.query('SELECT COUNT(*) as count FROM major');
         const [colleges] = await db.query('SELECT COUNT(*) as count FROM college');
         const [courses] = await db.query('SELECT COUNT(*) as count FROM course');
-        
         res.json({
             universities: universities[0].count,
             students: students[0].count,
@@ -44,7 +39,7 @@ router.get('/stats', async (req, res) => {
     }
 });
 
-// Get all students
+// --------------------- STUDENTS ---------------------
 router.get('/students', async (req, res) => {
     try {
         const [rows] = await db.query('SELECT * FROM student ORDER BY Student_ID DESC');
@@ -54,7 +49,6 @@ router.get('/students', async (req, res) => {
     }
 });
 
-// Delete student
 router.delete('/students/:id', async (req, res) => {
     try {
         await db.query('DELETE FROM student WHERE Student_ID = ?', [req.params.id]);
@@ -64,11 +58,12 @@ router.delete('/students/:id', async (req, res) => {
     }
 });
 
-// Get all applications
+// --------------------- APPLICATIONS ---------------------
 router.get('/applications', async (req, res) => {
     try {
         const [rows] = await db.query(`
-            SELECT a.*, s.First_Name, s.Last_Name, m.Name as Major_Name, u.Name as University_Name 
+            SELECT a.*, s.First_Name, s.Last_Name, s.Email as Student_Email,
+                   m.Name as Major_Name, u.Name as University_Name
             FROM application a 
             JOIN student s ON a.Student_ID = s.Student_ID 
             JOIN major m ON a.Major_ID = m.Major_ID 
@@ -82,18 +77,16 @@ router.get('/applications', async (req, res) => {
     }
 });
 
-// Update application status
 router.put('/applications/:id', async (req, res) => {
     try {
         const { status } = req.body;
         await db.query('UPDATE application SET Status = ? WHERE Application_ID = ?', [status, req.params.id]);
-        res.json({ message: 'Application updated' });
+        res.json({ message: 'Application status updated' });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
 
-// Delete application
 router.delete('/applications/:id', async (req, res) => {
     try {
         await db.query('DELETE FROM application WHERE Application_ID = ?', [req.params.id]);
@@ -103,17 +96,16 @@ router.delete('/applications/:id', async (req, res) => {
     }
 });
 
-// Get all universities
+// --------------------- UNIVERSITIES (CRUD) ---------------------
 router.get('/universities', async (req, res) => {
     try {
-        const [rows] = await db.query('SELECT * FROM university');
+        const [rows] = await db.query('SELECT * FROM university ORDER BY University_ID');
         res.json(rows);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
 
-// Add university
 router.post('/universities', async (req, res) => {
     try {
         const { Name, Type, Location, Email, Phone, Website } = req.body;
@@ -121,15 +113,28 @@ router.post('/universities', async (req, res) => {
             'INSERT INTO university (Name, Type, Location, Email, Phone, Website) VALUES (?, ?, ?, ?, ?, ?)',
             [Name, Type, Location, Email, Phone, Website]
         );
-        res.json({ id: result.insertId, message: 'University added' });
+        res.status(201).json({ id: result.insertId, message: 'University added' });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
 
-// Delete university
+router.put('/universities/:id', async (req, res) => {
+    try {
+        const { Name, Type, Location, Email, Phone, Website } = req.body;
+        await db.query(
+            'UPDATE university SET Name=?, Type=?, Location=?, Email=?, Phone=?, Website=? WHERE University_ID=?',
+            [Name, Type, Location, Email, Phone, Website, req.params.id]
+        );
+        res.json({ message: 'University updated' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 router.delete('/universities/:id', async (req, res) => {
     try {
+        // Delete related records first (cascade manually if needed)
         await db.query('DELETE FROM university WHERE University_ID = ?', [req.params.id]);
         res.json({ message: 'University deleted' });
     } catch (error) {
@@ -137,14 +142,15 @@ router.delete('/universities/:id', async (req, res) => {
     }
 });
 
-// Get all majors
+// --------------------- MAJORS (CRUD) ---------------------
 router.get('/majors', async (req, res) => {
     try {
         const [rows] = await db.query(`
-            SELECT m.*, c.Name as College_Name, u.Name as University_Name 
+            SELECT m.*, c.Name as College_Name, u.Name as University_Name, u.University_ID
             FROM major m 
             JOIN college c ON m.College_ID = c.College_ID 
             JOIN university u ON c.University_ID = u.University_ID
+            ORDER BY m.Major_ID
         `);
         res.json(rows);
     } catch (error) {
@@ -152,11 +158,51 @@ router.get('/majors', async (req, res) => {
     }
 });
 
-// Delete major
+router.post('/majors', async (req, res) => {
+    try {
+        const { Name, Degree_Type, Duration_Years, Description, College_ID } = req.body;
+        const [result] = await db.query(
+            'INSERT INTO major (Name, Degree_Type, Duration_Years, Description, College_ID) VALUES (?, ?, ?, ?, ?)',
+            [Name, Degree_Type, Duration_Years, Description, College_ID]
+        );
+        res.status(201).json({ id: result.insertId, message: 'Major added' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+router.put('/majors/:id', async (req, res) => {
+    try {
+        const { Name, Degree_Type, Duration_Years, Description, College_ID } = req.body;
+        await db.query(
+            'UPDATE major SET Name=?, Degree_Type=?, Duration_Years=?, Description=?, College_ID=? WHERE Major_ID=?',
+            [Name, Degree_Type, Duration_Years, Description, College_ID, req.params.id]
+        );
+        res.json({ message: 'Major updated' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 router.delete('/majors/:id', async (req, res) => {
     try {
         await db.query('DELETE FROM major WHERE Major_ID = ?', [req.params.id]);
         res.json({ message: 'Major deleted' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// --------------------- COLLEGES (for dropdown) ---------------------
+router.get('/colleges', async (req, res) => {
+    try {
+        const [rows] = await db.query(`
+            SELECT c.*, u.Name as University_Name 
+            FROM college c 
+            JOIN university u ON c.University_ID = u.University_ID
+            ORDER BY c.College_ID
+        `);
+        res.json(rows);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
