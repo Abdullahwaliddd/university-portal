@@ -3,7 +3,18 @@ const router = express.Router();
 const db = require('../db');
 const multer = require('multer');
 const path = require('path');
-module.exports = router;
+
+// --------------------- MULTER CONFIGURATION (Photo Upload) ---------------------
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, path.join(__dirname, '..', 'frontend', 'images'));
+    },
+    filename: (req, file, cb) => {
+        cb(null, `uni-${req.params.id}.jpg`);
+    }
+});
+const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
+
 // --------------------- AUTH ---------------------
 router.post('/login', async (req, res) => {
     try {
@@ -98,7 +109,7 @@ router.delete('/applications/:id', async (req, res) => {
     }
 });
 
-// --------------------- UNIVERSITIES (CRUD) ---------------------
+// --------------------- UNIVERSITIES (CRUD + PHOTO) ---------------------
 router.get('/universities', async (req, res) => {
     try {
         const [rows] = await db.query('SELECT * FROM university ORDER BY University_ID');
@@ -108,6 +119,18 @@ router.get('/universities', async (req, res) => {
     }
 });
 
+// GET single university by ID (for edit form)
+router.get('/universities/:id', async (req, res) => {
+    try {
+        const [rows] = await db.query('SELECT * FROM university WHERE University_ID = ?', [req.params.id]);
+        if (rows.length === 0) return res.status(404).json({ error: 'University not found' });
+        res.json(rows[0]);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// CREATE university
 router.post('/universities', async (req, res) => {
     try {
         const { Name, Type, Location, Email, Phone, Website } = req.body;
@@ -121,6 +144,7 @@ router.post('/universities', async (req, res) => {
     }
 });
 
+// UPDATE university
 router.put('/universities/:id', async (req, res) => {
     try {
         const { Name, Type, Location, Email, Phone, Website } = req.body;
@@ -134,11 +158,22 @@ router.put('/universities/:id', async (req, res) => {
     }
 });
 
+// DELETE university
 router.delete('/universities/:id', async (req, res) => {
     try {
-        // Delete related records first (cascade manually if needed)
         await db.query('DELETE FROM university WHERE University_ID = ?', [req.params.id]);
         res.json({ message: 'University deleted' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// UPLOAD photo for a university
+router.post('/universities/:id/photo', upload.single('photo'), async (req, res) => {
+    try {
+        const photoPath = `/images/uni-${req.params.id}.jpg`;
+        await db.query('UPDATE university SET photo = ? WHERE University_ID = ?', [photoPath, req.params.id]);
+        res.json({ message: 'Photo uploaded', path: photoPath });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -195,7 +230,7 @@ router.delete('/majors/:id', async (req, res) => {
     }
 });
 
-// --------------------- COLLEGES (for dropdown) ---------------------
+// --------------------- COLLEGES (for dropdown in majors form) ---------------------
 router.get('/colleges', async (req, res) => {
     try {
         const [rows] = await db.query(`
@@ -210,31 +245,7 @@ router.get('/colleges', async (req, res) => {
     }
 });
 
-
-// Storage config
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, path.join(__dirname, '..', 'frontend', 'images'));
-    },
-    filename: (req, file, cb) => {
-        const uniId = req.params.id;
-        cb(null, `uni-${uniId}.jpg`);
-    }
-});
-const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } }); // 5MB
-
-// Upload photo for a university
-router.post('/universities/:id/photo', upload.single('photo'), async (req, res) => {
-    try {
-        // The file is saved. Update the university record with the path.
-        const photoPath = `/images/uni-${req.params.id}.jpg`;
-        await db.query('UPDATE university SET photo = ? WHERE University_ID = ?', [photoPath, req.params.id]);
-        res.json({ message: 'Photo uploaded successfully', path: photoPath });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});// --------------------- STUDY PLANS & COURSES ---------------------
-// Get all study plans with related info
+// --------------------- STUDY PLANS & COURSES ---------------------
 router.get('/studyplans', async (req, res) => {
     try {
         const [rows] = await db.query(`
@@ -254,7 +265,10 @@ router.get('/studyplans', async (req, res) => {
 // Get courses for a specific plan
 router.get('/studyplans/:planId/courses', async (req, res) => {
     try {
-        const [rows] = await db.query('SELECT * FROM course WHERE Plan_ID = ? ORDER BY Semester_No', [req.params.planId]);
+        const [rows] = await db.query(
+            'SELECT * FROM course WHERE Plan_ID = ? ORDER BY Semester_No',
+            [req.params.planId]
+        );
         res.json(rows);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -284,3 +298,5 @@ router.delete('/courses/:id', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+
+module.exports = router;
