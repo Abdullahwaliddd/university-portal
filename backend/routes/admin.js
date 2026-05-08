@@ -3,6 +3,7 @@ const router = express.Router();
 const db = require('../db');
 const multer = require('multer');
 const path = require('path');
+module.exports = router;
 // --------------------- AUTH ---------------------
 router.post('/login', async (req, res) => {
     try {
@@ -209,9 +210,6 @@ router.get('/colleges', async (req, res) => {
     }
 });
 
-module.exports = router;
-const multer = require('multer');
-const path = require('path');
 
 // Storage config
 const storage = multer.diskStorage({
