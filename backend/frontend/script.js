@@ -286,19 +286,9 @@ function displayUniversityDetail(uni) {
     const colors = ['#667eea', '#f093fb', '#4facfe', '#43e97b', '#fa709a', '#a18cd1', '#ff9a9e'];
     const randomColor = colors[uni.University_ID % colors.length];
     
-    // University-specific photos for gallery
-    const uniPhotos = {
-        1: ['images/galala.jpg'],
-        2: [],
-        3: [],
-        4: [],
-        5: [],
-        6: [],
-        7: []
-    };
-    
-    const photos = uniPhotos[uni.University_ID] || [];
-    const mainPhoto = photos.length > 0 ? photos[0] : null;
+    // Use database photos (gallery) instead of hardcoded
+    const photos = uni.photos ? JSON.parse(uni.photos) : [];
+    const mainPhoto = uni.photo || null;
     
     container.innerHTML = `
         <div class="uni-detail-header">
@@ -331,6 +321,53 @@ function displayUniversityDetail(uni) {
             </div>
         </div>
         
+        <!-- Photo Gallery Section (from database) -->
+        ${photos.length > 0 ? `
+        <div class="photo-gallery-section">
+            <h2 style="font-size:28px;margin-bottom:20px;">📸 Campus Photos</h2>
+            <div class="photo-gallery">
+                ${photos.map((photo, index) => `
+                    <div class="gallery-item" onclick="openPhotoModal('${photo}')">
+                        <img src="${photo}" alt="Campus Photo ${index + 1}">
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+        ` : ''}
+        
+        <h2 style="font-size:32px;margin:30px 0 20px;">Colleges & Programs</h2>
+        <p style="color:#666;margin-bottom:20px;">Click on a college to view detailed study plan</p>
+        <div class="colleges-grid">
+            ${uni.colleges && uni.colleges.length > 0 ? 
+                uni.colleges.map(college => `
+                    <div class="college-card" onclick="showStudyPlan('${college.Name.replace(/'/g, "\\'")}', ${JSON.stringify(college.majors || []).replace(/"/g, '&quot;')})">
+                        <h4>${college.Name}</h4>
+                        <p>${college.Description || ''}</p>
+                        ${college.majors && college.majors.length > 0 ? `
+                            <div class="majors-list">
+                                ${college.majors.map(major => `
+                                    <span class="major-tag">${major.Name} (${major.Degree_Type || 'Bachelor'})</span>
+                                `).join('')}
+                            </div>
+                        ` : '<p style="font-size:12px;color:#999;">No majors available</p>'}
+                        <p style="color:#ff6600;font-size:12px;margin-top:10px;">📚 Click to view study plan →</p>
+                    </div>
+                `).join('') :
+                '<p>No colleges found for this university.</p>'
+            }
+        </div>
+        
+        <div id="studyPlanModal" class="modal" style="display:none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="modalTitle">Study Plan</h3>
+                    <button class="modal-close" onclick="closeModal()">&times;</button>
+                </div>
+                <div class="modal-body" id="modalBody"></div>
+            </div>
+        </div>
+    `;
+}
         <!-- Photo Gallery Section -->
         ${photos.length > 0 ? `
         <div class="photo-gallery-section">

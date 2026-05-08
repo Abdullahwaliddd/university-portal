@@ -24,14 +24,10 @@
         }
         * { margin:0; padding:0; box-sizing:border-box; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--dark-bg); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
-        
-        /* SIDEBAR */
         .sidebar { width: 240px; background: var(--card-bg); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 20px; flex-shrink: 0; }
         .sidebar h2 { font-size: 20px; margin-bottom: 30px; color: var(--jordy); }
         .sidebar nav a { display: block; padding: 10px 15px; color: var(--text-light); text-decoration: none; border-radius: 8px; margin-bottom: 5px; cursor: pointer; transition: 0.2s; }
         .sidebar nav a:hover, .sidebar nav a.active { background: var(--yinmn); color: white; }
-        
-        /* MAIN */
         .main { flex: 1; overflow-y: auto; padding: 30px; }
         .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
         .topbar h1 { font-size: 28px; }
@@ -42,17 +38,14 @@
         .btn-accept { background: var(--success); color: white; }
         .btn-reject { background: var(--warning); color: black; }
         .btn-sm { padding: 4px 10px; font-size: 12px; }
-        
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 15px; margin-bottom: 30px; }
         .stat-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
         .stat-card h3 { font-size: 36px; color: var(--accent); }
         .stat-card p { color: var(--text-light); margin-top: 5px; }
-        
         .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
         table { width: 100%; border-collapse: collapse; }
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); }
         th { color: var(--text-light); font-weight: 600; }
-        
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center; }
         .modal.active { display: flex; }
         .modal-content { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 30px; width: 500px; max-width: 90%; max-height: 80vh; overflow-y: auto; }
@@ -61,14 +54,11 @@
         .form-group label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 13px; color: var(--text-light); }
         .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--dark-bg); color: var(--text); }
         .flex { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
-        
         .status { padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
         .status.accepted { background: rgba(63,185,80,0.2); color: var(--success); }
         .status.rejected { background: rgba(248,81,73,0.2); color: var(--danger); }
         .status.pending { background: rgba(210,153,29,0.2); color: var(--warning); }
-        
         .badge { background: var(--yinmn); padding: 3px 8px; border-radius: 12px; font-size: 12px; }
-
         @media (max-width: 768px) {
             .sidebar { display: none; }
             .main { padding: 20px; }
@@ -76,7 +66,6 @@
     </style>
 </head>
 <body>
-    <!-- Sidebar -->
     <div class="sidebar">
         <h2>🎓 EduFuture</h2>
         <nav>
@@ -91,11 +80,7 @@
             <button class="btn btn-outline" onclick="adminLogout()" style="width:100%">🚪 Logout</button>
         </div>
     </div>
-
-    <!-- Main Content -->
     <div class="main" id="mainContent"></div>
-
-    <!-- Modal -->
     <div id="modal" class="modal">
         <div class="modal-content" id="modalBody"></div>
     </div>
@@ -103,8 +88,6 @@
     <script>
         const API = window.location.origin + '/api/admin';
         const currentAdmin = JSON.parse(localStorage.getItem('adminUser') || 'null');
-
-        // Login screen if not authenticated
         if (!currentAdmin) {
             document.body.innerHTML = `
                 <div style="display:flex;align-items:center;justify-content:center;height:100vh;background:var(--dark-bg);">
@@ -211,7 +194,7 @@
         async function updateApp(id, status) { await fetch(`${API}/applications/${id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status})}); loadApplications(); }
         async function deleteApp(id) { if(confirm('Delete this application?')) { await fetch(`${API}/applications/${id}`, {method:'DELETE'}); loadApplications(); } }
 
-        // ---------- UNIVERSITIES (with photo upload) ----------
+        // ---------- UNIVERSITIES (with gallery) ----------
         async function loadUniversities() {
             const res = await fetch(`${API}/universities`);
             const unis = await res.json();
@@ -235,11 +218,14 @@
         async function openUniModal(id = null) {
             const modal = document.getElementById('modal');
             const isEdit = id !== null;
-            let uni = {Name:'', Type:'', Location:'', Email:'', Phone:'', Website:'', photo:''};
+            let uni = {Name:'', Type:'', Location:'', Email:'', Phone:'', Website:'', photo:'', photos:'[]'};
             if (isEdit) {
                 const res = await fetch(`${API}/universities/${id}`);
                 uni = await res.json();
             }
+            let galleryPhotos = [];
+            try { galleryPhotos = JSON.parse(uni.photos || '[]'); } catch(e) { galleryPhotos = []; }
+
             document.getElementById('modalBody').innerHTML = `
                 <h3>${isEdit ? 'Edit' : 'Add'} University</h3>
                 <div class="form-group"><label>Name</label><input id="uniName" value="${uni.Name||''}"></div>
@@ -248,11 +234,23 @@
                 <div class="form-group"><label>Email</label><input id="uniEmail" value="${uni.Email||''}"></div>
                 <div class="form-group"><label>Phone</label><input id="uniPhone" value="${uni.Phone||''}"></div>
                 <div class="form-group"><label>Website</label><input id="uniWeb" value="${uni.Website||''}"></div>
-                <div class="form-group"><label>Photo</label>
+                <div class="form-group"><label>Main Photo</label>
                     <input type="file" id="uniPhoto" accept="image/*">
                     ${uni.photo ? `<img src="${uni.photo}" style="max-width:150px;margin-top:10px;border-radius:8px;">` : ''}
                 </div>
-                <div class="flex">
+                <hr style="border-color: var(--border); margin: 20px 0;">
+                <h4>📸 Campus Gallery</h4>
+                <div id="galleryPreview" style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
+                    ${galleryPhotos.map(p => `
+                        <div style="position:relative;">
+                            <img src="${p}" style="width:100px; height:70px; object-fit:cover; border-radius:6px;">
+                            <button class="btn btn-danger btn-sm" style="position:absolute; top:-5px; right:-5px;" onclick="deleteGalleryPhoto(${id}, '${p}')">×</button>
+                        </div>
+                    `).join('')}
+                </div>
+                <input type="file" id="galleryPhoto" accept="image/*" multiple>
+                <button class="btn btn-outline btn-sm" onclick="uploadGalleryPhoto(${id})">Upload to Gallery</button>
+                <div class="flex" style="margin-top:20px;">
                     <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
                     <button class="btn btn-primary" onclick="saveUni(${isEdit ? id : null})">Save</button>
                 </div>`;
@@ -282,6 +280,29 @@
             }
             closeModal();
             loadUniversities();
+        }
+
+        async function uploadGalleryPhoto(uniId) {
+            const fileInput = document.getElementById('galleryPhoto');
+            if (!fileInput.files.length) return alert('Please select at least one image');
+            for (let file of fileInput.files) {
+                const formData = new FormData();
+                formData.append('photo', file);
+                await fetch(`${API}/universities/${uniId}/photos`, { method: 'POST', body: formData });
+            }
+            loadUniversities();
+            openUniModal(uniId);
+        }
+
+        async function deleteGalleryPhoto(uniId, photoPath) {
+            if (!confirm('Delete this photo?')) return;
+            await fetch(`${API}/universities/${uniId}/photos`, {
+                method: 'DELETE',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ filename: photoPath })
+            });
+            loadUniversities();
+            openUniModal(uniId);
         }
 
         async function deleteUni(id) { if(confirm('Delete this university?')) { await fetch(`${API}/universities/${id}`, {method:'DELETE'}); loadUniversities(); } }
@@ -350,7 +371,6 @@
             closeModal();
             loadMajors();
         }
-
         async function deleteMajor(id) { if(confirm('Delete this major?')) { await fetch(`${API}/majors/${id}`, {method:'DELETE'}); loadMajors(); } }
 
         // ---------- STUDY PLANS & COURSES ----------
