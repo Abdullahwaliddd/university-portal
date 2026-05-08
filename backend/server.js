@@ -46,3 +46,5 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`📚 API available at http://localhost:${PORT}/api`);
     console.log('=========================================');
 });
+const adminRoutes = require('./routes/admin');
+app.use('/api/admin', adminRoutes);
