@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
-
+const multer = require('multer');
+const path = require('path');
 // --------------------- AUTH ---------------------
 router.post('/login', async (req, res) => {
     try {
