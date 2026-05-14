@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Program Recommender - EduFuture</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="ai-widget.css">
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
+    <style>
+        :root {
+            --oxford: #192338;
+            --cadet: #1E2E4F;
+            --yinmn: #31487A;
+            --jordy: #8FB3E2;
+            --lavender: #D9E1F1;
+            --white: #FFFFFF;
+            --accent: #ff6600;
+        }
+
+        .recommender-container {
+            min-height: 100vh;
+            background: linear-gradient(135deg, var(--oxford) 0%, var(--cadet) 50%, var(--yinmn) 100%);
+            padding: 60px 20px;
+        }
+
+        .recommender-header {
+            text-align: center;
+            color: var(--white);
+            margin-bottom: 50px;
+        }
+
+        .recommender-header h1 {
+            font-size: 42px;
+            font-weight: 800;
+            margin-bottom: 15px;
+        }
+
+        .recommender-header p {
+            font-size: 18px;
+            opacity: 0.9;
+            color: var(--lavender);
+        }
+
+        .recommender-widget {
+            max-width: 800px;
+            margin: 0 auto;
+            background: var(--white);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .progress-steps {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 40px;
+        }
+
+        .step {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--lavender);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: var(--yinmn);
+            transition: all 0.3s;
+        }
+
+        .step.active {
+            background: var(--yinmn);
+            color: white;
+            transform: scale(1.1);
+            box-shadow: 0 5px 20px rgba(49, 72, 122, 0.4);
+        }
+
+        .step.completed {
+            background: var(--jordy);
+            color: white;
+        }
+
+        .question-group {
+            margin-bottom: 30px;
+        }
+
+        .question-group h3 {
+            color: var(--oxford);
+            margin-bottom: 15px;
+            font-size: 22px;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+        }
+
+        .option-card {
+            background: var(--lavender);
+            border: 2px solid transparent;
+            border-radius: 12px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+            font-weight: 600;
+            color: var(--cadet);
+        }
+
+        .option-card:hover {
+            border-color: var(--jordy);
+            transform: translateY(-3px);
+            box-shadow: 0 5px 20px rgba(143, 179, 226, 0.3);
+        }
+
+        .option-card.selected {
+            background: var(--yinmn);
+            color: white;
+            border-color: var(--jordy);
+            transform: translateY(-3px);
+            box-shadow: 0 5px 20px rgba(49, 72, 122, 0.4);
+        }
+
+        .slider-group {
+            margin-bottom: 25px;
+        }
+
+        .slider-group label {
+            display: block;
+            font-weight: 600;
+            color: var(--oxford);
+            margin-bottom: 8px;
+        }
+
+        .slider-group input[type="range"] {
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: var(--lavender);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .slider-group input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--yinmn);
+            cursor: pointer;
+        }
+
+        .slider-value {
+            display: inline-block;
+            background: var(--yinmn);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 14px;
+            margin-left: 10px;
+        }
+
+        .btn-analyze {
+            width: 100%;
+            padding: 16px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 20px;
+        }
+
+        .btn-analyze:hover {
+            background: #e55d00;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(255, 102, 0, 0.4);
+        }
+
+        .btn-analyze:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .results-container {
+            display: none;
+            margin-top: 30px;
+        }
+
+        .results-container.show {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .result-card {
+            background: var(--lavender);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+
+        .result-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .result-card.top-match {
+            background: linear-gradient(135deg, var(--yinmn), var(--cadet));
+            color: white;
+            border: 3px solid var(--jordy);
+        }
+
+        .match-percentage {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 36px;
+            font-weight: 900;
+            color: var(--accent);
+        }
+
+        .result-card.top-match .match-percentage {
+            color: var(--jordy);
+        }
+
+        .result-card h3 {
+            font-size: 22px;
+            margin-bottom: 10px;
+        }
+
+        .result-card .university-name {
+            font-size: 16px;
+            opacity: 0.8;
+            margin-bottom: 10px;
+        }
+
+        .result-details {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+
+        .result-tag {
+            background: rgba(255,255,255,0.2);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+        }
+
+        .result-card.top-match .result-tag {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .loading-spinner {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid var(--lavender);
+            border-top-color: var(--yinmn);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 600px) {
+            .recommender-widget { padding: 20px; }
+            .recommender-header h1 { font-size: 28px; }
+            .options-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <a href="index.html" class="logo-text">Edu<span class="logo-highlight">Future</span></a>
+            </div>
+            <div class="nav-buttons">
+                <a href="index.html" class="btn-outline">Home</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="recommender-container">
+        <div class="recommender-header">
+            <h1>🤖 AI Program Recommender</h1>
+            <p>Answer a few questions and our local AI will find your perfect university program</p>
+        </div>
+
+        <div class="recommender-widget" id="recommenderWidget">
+            <!-- Step indicators -->
+            <div class="progress-steps">
+                <div class="step active" id="step1">1</div>
+                <div class="step" id="step2">2</div>
+                <div class="step" id="step3">3</div>
+                <div class="step" id="step4">4</div>
+                <div class="step" id="step5">5</div>
+            </div>
+
+            <!-- Questions Form -->
+            <div id="questionsForm">
+                <!-- Interests -->
+                <div class="question-group">
+                    <h3>🎯 What interests you most?</h3>
+                    <div class="options-grid" id="interestsGrid">
+                        <div class="option-card" data-value="technology">💻 Technology & Computing</div>
+                        <div class="option-card" data-value="engineering">⚙️ Engineering</div>
+                        <div class="option-card" data-value="business">💼 Business & Management</div>
+                        <div class="option-card" data-value="healthcare">🏥 Healthcare & Medicine</div>
+                        <div class="option-card" data-value="arts">🎨 Arts & Design</div>
+                        <div class="option-card" data-value="science">🔬 Science & Research</div>
+                    </div>
+                </div>
+
+                <!-- GPA -->
+                <div class="slider-group">
+                    <label>📊 Your GPA <span class="slider-value" id="gpaValue">3.0</span></label>
+                    <input type="range" id="gpaSlider" min="1.0" max="4.0" step="0.1" value="3.0">
+                    <div style="display:flex;justify-content:space-between;font-size:12px;color:#666;">
+                        <span>1.0</span><span>2.0</span><span>3.0</span><span>4.0</span>
+                    </div>
+                </div>
+
+                <!-- Budget -->
+                <div class="slider-group">
+                    <label>💰 Annual Budget (EGP) <span class="slider-value" id="budgetValue">200,000</span></label>
+                    <input type="range" id="budgetSlider" min="50000" max="800000" step="10000" value="200000">
+                    <div style="display:flex;justify-content:space-between;font-size:12px;color:#666;">
+                        <span>50K</span><span>200K</span><span>400K</span><span>800K</span>
+                    </div>
+                </div>
+
+                <!-- Location Preference -->
+                <div class="question-group">
+                    <h3>📍 Preferred Location</h3>
+                    <div class="options-grid" id="locationGrid">
+                        <div class="option-card" data-value="cairo">🏙️ Greater Cairo</div>
+                        <div class="option-card" data-value="giza">🕌 Giza</div>
+                        <div class="option-card" data-value="alexandria">🌊 Alexandria</div>
+                        <div class="option-card" data-value="any">🌍 Any Location</div>
+                    </div>
+                </div>
+
+                <!-- Degree Preference -->
+                <div class="question-group">
+                    <h3>🎓 Degree Preference</h3>
+                    <div class="options-grid" id="degreeGrid">
+                        <div class="option-card selected" data-value="bachelor">📜 Bachelor's</div>
+                        <div class="option-card" data-value="any">🔓 Any Level</div>
+                    </div>
+                </div>
+
+                <button class="btn-analyze" id="analyzeBtn" onclick="runAIRecommendation()">
+                    🔍 Analyze & Recommend
+                </button>
+            </div>
+
+            <!-- Results -->
+            <div class="results-container" id="resultsContainer">
+                <h3 style="text-align:center;color:var(--oxford);margin-bottom:20px;">✨ Your Top Program Matches</h3>
+                <div id="resultsContent"></div>
+                <button class="btn-analyze" onclick="resetRecommender()" style="background:var(--cadet);">
+                    🔄 Start Over
+                </button>
+            </div>
+
+            <!-- Loading -->
+            <div class="loading-spinner" id="loadingSpinner" style="display:none;">
+                <div class="spinner"></div>
+                <p style="color:var(--yinmn);">Our local AI is analyzing your profile...</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="recommender.js"></script>
+    <script src="ai-widget.js"></script>
+</body>
+</html>
