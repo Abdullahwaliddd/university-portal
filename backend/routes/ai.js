@@ -19,7 +19,6 @@ async function generateLocalResponse(message) {
 
     // ---- Pattern: recommend / suggest / find program ----
     if (/(recommend|suggest|find|which|what).*(program|major|course|university)/.test(msg)) {
-        // Check for interest keywords
         const interests = {
             computer: /computer|software|cs|it|information|data|ai/i,
             engineering: /engineer|mechanical|civil|electrical/i,
@@ -37,7 +36,6 @@ async function generateLocalResponse(message) {
         }
 
         if (matchedMajors.length === 0) {
-            // No specific interest – return top 3 popular majors
             matchedMajors = majors.slice(0, 3);
         }
 
@@ -66,7 +64,6 @@ async function generateLocalResponse(message) {
 
     // ---- Pattern: fees / cost / tuition ----
     if (/(fee|cost|tuition|price|expensive|cheap|budget)/.test(msg)) {
-        // Find fee data from DB
         const [fees] = await db.query(
             `SELECT f.*, m.Name as Major, u.Name as University 
              FROM fee f 
@@ -79,10 +76,12 @@ async function generateLocalResponse(message) {
             return "💰 Fee information is currently being updated. Generally, tuition ranges from 60,000 to 800,000 EGP annually depending on the university and program.";
         }
 
-        let reply = "💰 **Tuition Fee Comparison:**\n\n";
+        let reply = "💰 **Tuition Fee Comparison (Total per Year):**\n\n";
         fees.forEach(f => {
-            const total = (f.Tuition_Fee || 0) + (f.Registration_Fee || 0) + (f.Other_Fees || 0);
-            reply += `• **${f.University}** – ${f.Major}: ${total.toLocaleString()} ${f.Currency || 'EGP'} (${f.Academic_Year || '2025'})\n`;
+            const total = (parseFloat(f.Tuition_Fee) || 0) + 
+                          (parseFloat(f.Registration_Fee) || 0) + 
+                          (parseFloat(f.Other_Fees) || 0);
+            reply += `• **${f.University}** – ${f.Major}: **${total.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}** ${f.Currency || 'EGP'} (${f.Academic_Year || '2025'})\n`;
         });
         return reply;
     }
