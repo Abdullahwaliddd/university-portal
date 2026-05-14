@@ -342,11 +342,72 @@ async function loadMyApplications(studentId) {
 async function loadNewApplicationForm() {
     const content = document.getElementById('dashboardContent');
     const student = JSON.parse(localStorage.getItem('currentStudent'));
+    
     try {
-        const [majors, universities] = await Promise.all([fetch(`${API_URL}/majors`).then(r => r.json()), fetch(`${API_URL}/universities`).then(r => r.json())]);
-        content.innerHTML = `<h2 style="margin-bottom:25px;">Apply to University</h2><div class="application-form"><form onsubmit="submitApplication(event)"><div class="form-group"><label>Student</label><input type="text" value="${student.First_Name} ${student.Last_Name}" disabled></div><div class="form-group"><label>Select University</label><select id="appUni" required><option value="">Choose university...</option>${universities.map(uni => `<option value="${uni.University_ID}">${uni.Name}</option>`).join('')}</select></div><div class="form-group"><label>Select Major</label><select id="appMajor" required><option value="">Choose major...</option>${majors.map(major => `<option value="${major.Major_ID}">${major.Name}</option>`).join('')}</select></div><div class="form-row"><div class="form-group"><label>GPA (0-4)</label><input type="number" id="appGPA" step="0.01" min="0" max="4" placeholder="e.g., 3.5" required></div><div class="form-group"><label>High School Score (0-100)</label><input type="number" id="appScore" step="0.01" min="0" max="100" placeholder="e.g., 95" required></div></div><button type="submit" class="btn-primary btn-full" style="margin-top:10px;">Submit Application</button></form><div id="appMessage" class="message"></div></div>`;
+        const [majors, universities] = await Promise.all([
+            fetch(`${API_URL}/majors`).then(r => r.json()),
+            fetch(`${API_URL}/universities`).then(r => r.json())
+        ]);
+
+        // Store majors globally for filtering
+        window.allMajors = majors;
+
+        content.innerHTML = `
+            <h2 style="margin-bottom:25px;">Apply to University</h2>
+            <div class="application-form">
+                <form onsubmit="submitApplication(event)">
+                    <div class="form-group">
+                        <label>Student</label>
+                        <input type="text" value="${student.First_Name} ${student.Last_Name}" disabled>
+                    </div>
+                    <div class="form-group">
+                        <label>Select University</label>
+                        <select id="appUni" required onchange="filterMajorsByUniversity()">
+                            <option value="">Choose university...</option>
+                            ${universities.map(uni => `<option value="${uni.University_ID}">${uni.Name}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Select Major</label>
+                        <select id="appMajor" required>
+                            <option value="">Choose a university first</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>GPA (0-4)</label>
+                            <input type="number" id="appGPA" step="0.01" min="0" max="4" placeholder="e.g., 3.5" required>
+                        </div>
+                        <div class="form-group">
+                            <label>High School Score (0-100)</label>
+                            <input type="number" id="appScore" step="0.01" min="0" max="100" placeholder="e.g., 95" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-primary btn-full" style="margin-top:10px;">Submit Application</button>
+                </form>
+                <div id="appMessage" class="message"></div>
+            </div>
+        `;
     } catch (error) {
         content.innerHTML = '<p>Error loading form.</p>';
+    }
+}
+
+// Filter majors dropdown based on selected university
+function filterMajorsByUniversity() {
+    const uniId = parseInt(document.getElementById('appUni').value);
+    const majorSelect = document.getElementById('appMajor');
+    const allMajors = window.allMajors || [];
+    
+    // Filter majors that belong to the selected university
+    const filtered = allMajors.filter(m => m.University_ID == uniId);
+    
+    // Populate the dropdown
+    if (filtered.length === 0) {
+        majorSelect.innerHTML = '<option value="">No majors available for this university</option>';
+    } else {
+        majorSelect.innerHTML = '<option value="">Select a major...</option>' +
+            filtered.map(m => `<option value="${m.Major_ID}">${m.Name} (${m.Degree_Type || 'Bachelor'})</option>`).join('');
     }
 }
 
