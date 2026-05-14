@@ -56,6 +56,7 @@ If the question is outside this domain, politely redirect to university topics.
         );
 
         const data = await response.json();
+        console.log('Gemini API Response:', JSON.stringify(data));
         const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || 
                       "I'm having trouble answering that right now. Please try again!";
 
