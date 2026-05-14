@@ -2,7 +2,9 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
+// ---------- Environment variables ----------
+const GROQ_API_KEY = process.env.GROQ_API_KEY || '';   // <-- Set this in Railway
+const GROQ_MODEL = 'llama-3.3-70b-versatile';          // Free on Groq
 
 // ---------- Smart local response generator (fallback) ----------
 async function generateLocalResponse(message) {
@@ -62,7 +64,7 @@ async function generateLocalResponse(message) {
         return reply;
     }
 
-    // ---- Pattern: fees / cost / tuition ----
+    // ---- Pattern: fees / budget / cost ----
     if (/(fee|cost|tuition|price|expensive|cheap|budget)/.test(msg)) {
         const [fees] = await db.query(
             `SELECT f.*, m.Name as Major, u.Name as University 
@@ -73,15 +75,57 @@ async function generateLocalResponse(message) {
         );
 
         if (fees.length === 0) {
-            return "💰 Fee information is currently being updated. Generally, tuition ranges from 60,000 to 800,000 EGP annually depending on the university and program.";
+            return "💰 Fee information is currently being updated. Generally, tuition ranges from 60,000 to 800,000 EGP annually.";
         }
 
-        let reply = "💰 **Tuition Fee Comparison (Total per Year):**\n\n";
-        fees.forEach(f => {
-            const total = (parseFloat(f.Tuition_Fee) || 0) + 
-                          (parseFloat(f.Registration_Fee) || 0) + 
-                          (parseFloat(f.Other_Fees) || 0);
-            reply += `• **${f.University}** – ${f.Major}: **${total.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}** ${f.Currency || 'EGP'} (${f.Academic_Year || '2025'})\n`;
+        // Try to extract a budget number from the message (e.g., "100000", "100k", "100 thousand")
+        const budgetMatch = msg.match(/(\d+[\.,]?\d*)\s*(?:k|thousand|EGP|egp)?/i);
+        const userBudget = budgetMatch ? parseFloat(budgetMatch[1].replace(/,/g, '')) * (budgetMatch[0].toLowerCase().includes('k') ? 1000 : 1) : null;
+
+        // Calculate total fee for each program
+        const feesWithTotal = fees.map(f => ({
+            ...f,
+            total: (parseFloat(f.Tuition_Fee) || 0) + (parseFloat(f.Registration_Fee) || 0) + (parseFloat(f.Other_Fees) || 0)
+        }));
+
+        // Sort by total fee
+        feesWithTotal.sort((a, b) => a.total - b.total);
+
+        let reply = '';
+
+        if (userBudget) {
+            // Filter programs within budget
+            const withinBudget = feesWithTotal.filter(f => f.total <= userBudget);
+            const overBudget = feesWithTotal.filter(f => f.total > userBudget).slice(0, 3);
+
+            reply = `💰 **Programs within your budget of ~${userBudget.toLocaleString()} EGP:**\n\n`;
+
+            if (withinBudget.length === 0) {
+                reply += `Unfortunately, no programs fit exactly within ${userBudget.toLocaleString()} EGP.\n\n`;
+                reply += `📌 **Cheapest available programs:**\n`;
+                feesWithTotal.slice(0, 3).forEach(f => {
+                    reply += `• **${f.University}** – ${f.Major}: **${f.total.toLocaleString()}** EGP (${f.Academic_Year || '2025'})\n`;
+                });
+            } else {
+                withinBudget.forEach(f => {
+                    reply += `• **${f.University}** – ${f.Major}: **${f.total.toLocaleString()}** EGP (${f.Academic_Year || '2025'})\n`;
+                });
+            }
+
+            if (overBudget.length > 0) {
+                reply += `\n⚠️ **Slightly above your budget:**\n`;
+                overBudget.forEach(f => {
+                    reply += `• **${f.University}** – ${f.Major}: **${f.total.toLocaleString()}** EGP\n`;
+                });
+            }
+
+            return reply;
+        }
+
+        // No specific budget – show full comparison
+        reply = "💰 **Tuition Fee Comparison (Total per Year):**\n\n";
+        feesWithTotal.forEach(f => {
+            reply += `• **${f.University}** – ${f.Major}: **${f.total.toLocaleString()}** ${f.Currency || 'EGP'} (${f.Academic_Year || '2025'})\n`;
         });
         return reply;
     }
@@ -107,54 +151,63 @@ async function generateLocalResponse(message) {
     return `I can help you with:\n\n🎯 Program recommendations\n🏛️ University listings\n💰 Fee comparisons\n📝 Application guidance\n\nJust tell me what you're interested in! For example: "Recommend a computer science program" or "Compare university fees".`;
 }
 
-// ---------- Route ----------
-router.post('/chat', async (req, res) => {
-    const { message } = req.body;
+// ---------- Call Groq API ----------
+async function callGroq(userMessage) {
+    // Build context from the database
+    const [universities] = await db.query('SELECT Name, Location, Type, Website FROM university');
+    const [majors] = await db.query(
+        `SELECT m.Name, m.Degree_Type, m.Duration_Years, c.Name as College, u.Name as University 
+         FROM major m 
+         JOIN college c ON m.College_ID = c.College_ID 
+         JOIN university u ON c.University_ID = u.University_ID`
+    );
 
-    // 1. Try Gemini if API key is set
-    if (GEMINI_API_KEY) {
-        try {
-            const [universities] = await db.query('SELECT Name, Location, Type, Website FROM university');
-            const [majors] = await db.query(
-                `SELECT m.Name, m.Degree_Type, m.Duration_Years, c.Name as College, u.Name as University 
-                 FROM major m 
-                 JOIN college c ON m.College_ID = c.College_ID 
-                 JOIN university u ON c.University_ID = u.University_ID`
-            );
-
-            const context = `
+    const context = `
 You are EduFuture Assistant for a university admission platform in Egypt.
-Data:
+Here is the real platform data:
 Universities:
 ${universities.map(u => `- ${u.Name} (${u.Location}), Type: ${u.Type}`).join('\n')}
 Majors:
-${majors.slice(0, 20).map(m => `- ${m.Name} at ${m.University}`).join('\n')}
-Answer helpfully. If off-topic, redirect to university topics.
+${majors.slice(0, 30).map(m => `- ${m.Name} at ${m.University}`).join('\n')}
+Answer the student's question naturally using this data. Be concise, helpful, and friendly.
 `.trim();
 
-            const response = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
-                {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: `${context}\n\nStudent: ${message}\nAssistant:` }] }],
-                        generationConfig: { temperature: 0.7, maxOutputTokens: 500 }
-                    })
-                }
-            );
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${GROQ_API_KEY}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            model: GROQ_MODEL,
+            messages: [
+                { role: 'system', content: context },
+                { role: 'user', content: userMessage }
+            ],
+            temperature: 0.7,
+            max_tokens: 500
+        })
+    });
 
-            const data = await response.json();
-            const reply = data.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (reply) {
-                return res.json({ reply });
-            }
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content || '';
+}
+
+// ---------- Main route ----------
+router.post('/chat', async (req, res) => {
+    const { message } = req.body;
+
+    // 1. Try Groq if API key is set
+    if (GROQ_API_KEY) {
+        try {
+            const reply = await callGroq(message);
+            if (reply) return res.json({ reply });
         } catch (err) {
-            console.error('Gemini API failed, falling back to local:', err.message);
+            console.error('Groq API failed, falling back to local:', err.message);
         }
     }
 
-    // 2. Fallback to smart local response
+    // 2. Fallback to local smart response
     const localReply = await generateLocalResponse(message);
     res.json({ reply: localReply });
 });
