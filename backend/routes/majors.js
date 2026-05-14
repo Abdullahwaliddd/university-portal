@@ -6,7 +6,7 @@ const db = require('../db');
 router.get('/', async (req, res) => {
     try {
         const [rows] = await db.query(`
-            SELECT m.*, c.Name as College_Name, u.Name as University_Name 
+            SELECT m.*, c.Name as College_Name, u.Name as University_Name, u.University_ID
             FROM major m 
             JOIN college c ON m.College_ID = c.College_ID 
             JOIN university u ON c.University_ID = u.University_ID

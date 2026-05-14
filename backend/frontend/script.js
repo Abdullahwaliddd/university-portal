@@ -394,15 +394,34 @@ async function loadNewApplicationForm() {
 }
 
 // Filter majors dropdown based on selected university
+// Filter majors dropdown based on selected university
 function filterMajorsByUniversity() {
-    const uniId = parseInt(document.getElementById('appUni').value);
+    const uniSelect = document.getElementById('appUni');
+    const uniId = parseInt(uniSelect.value); // ensure integer
     const majorSelect = document.getElementById('appMajor');
     const allMajors = window.allMajors || [];
-    
-    // Filter majors that belong to the selected university
-    const filtered = allMajors.filter(m => m.University_ID == uniId);
-    
-    // Populate the dropdown
+
+    console.log('Selected University ID:', uniId);
+    console.log('Total majors loaded:', allMajors.length);
+
+    // Check for University_ID or university_id field
+    const sample = allMajors[0];
+    console.log('Sample major object:', sample);
+
+    // Determine the field name (it might be University_ID or university_id)
+    const uniIdField = sample && 'University_ID' in sample ? 'University_ID' : 
+                       sample && 'university_id' in sample ? 'university_id' : null;
+
+    if (!uniIdField) {
+        console.error('Majors data does not contain university ID field');
+        majorSelect.innerHTML = '<option value="">Error loading majors – please refresh</option>';
+        return;
+    }
+
+    // Filter majors where the university ID matches
+    const filtered = allMajors.filter(m => parseInt(m[uniIdField]) === uniId);
+    console.log('Filtered majors count:', filtered.length);
+
     if (filtered.length === 0) {
         majorSelect.innerHTML = '<option value="">No majors available for this university</option>';
     } else {
