@@ -2,17 +2,24 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 
-// Your Gemini API key – store in Railway environment variables in production
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'AIzaSyArMY_HcioQMHDPJBpv64nVvNy1GMiak3s';
+// NEVER hardcode the key. It MUST come from Railway's environment variables.
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 router.post('/chat', async (req, res) => {
+    if (!GEMINI_API_KEY) {
+        return res.status(500).json({ reply: "AI service is not configured. Please set the GEMINI_API_KEY environment variable." });
+    }
+
     try {
         const { message } = req.body;
 
-        // Build context from your database (so the AI knows about your site)
+        // Build context from your real database
         const [universities] = await db.query('SELECT Name, Location, Type, Website FROM university');
         const [majors] = await db.query(
-            'SELECT m.Name, m.Degree_Type, m.Duration_Years, c.Name as College, u.Name as University FROM major m JOIN college c ON m.College_ID = c.College_ID JOIN university u ON c.University_ID = u.University_ID'
+            `SELECT m.Name, m.Degree_Type, m.Duration_Years, c.Name as College, u.Name as University 
+             FROM major m 
+             JOIN college c ON m.College_ID = c.College_ID 
+             JOIN university u ON c.University_ID = u.University_ID`
         );
 
         const context = `
@@ -31,7 +38,6 @@ Answer the student's question using this data. Keep answers concise, friendly, a
 If the question is outside this domain, politely redirect to university topics.
 `.trim();
 
-        // Call Gemini API
         const response = await fetch(
             `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
             {
