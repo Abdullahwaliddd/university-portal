@@ -132,7 +132,10 @@ router.post('/send-code', async (req, res) => {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        sender: { email: BREVO_FROM_EMAIL, name: 'EduFuture' },
+                        sender: {
+                            email: BREVO_FROM_EMAIL,   // only the email address
+                            name: 'EduFuture'           // display name
+                        },
                         to: [{ email }],
                         subject: 'Your EduFuture Verification Code',
                         htmlContent: `
