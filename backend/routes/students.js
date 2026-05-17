@@ -102,7 +102,8 @@ router.get('/:id/applications', async (req, res) => {
     }
 });
 
-// ---------- Email Verification with fallback ----------
+// ---------- Email Verification (with instant fallback) ----------
+
 router.post('/send-code', async (req, res) => {
     const { email } = req.body;
     if (!email) return res.status(400).json({ error: 'Email required' });
@@ -117,25 +118,44 @@ router.post('/send-code', async (req, res) => {
         await db.query('DELETE FROM email_verification WHERE email = ?', [email]);
         await db.query('INSERT INTO email_verification (email, code, expires_at) VALUES (?, ?, ?)', [email, code, expiresAt]);
 
+        // ---------- Email sending with fast timeout ----------
         let emailSent = false;
-        if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+
+        // Railway blocks outbound SMTP – skip email automatically
+        const isRailway = !!process.env.RAILWAY_SERVICE || !!process.env.RAILWAY_ENVIRONMENT;
+
+        if (!isRailway && process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+            const transporter = nodemailer.createTransport({
+                service: 'gmail',
+                auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+                // Force a short connection timeout (5 seconds)
+                connectionTimeout: 5000,
+                greetingTimeout: 5000,
+                socketTimeout: 5000
+            });
+
+            // Race between sending and a 5-second timeout
+            const sendPromise = transporter.sendMail({
+                from: `"EduFuture" <${process.env.EMAIL_USER}>`,
+                to: email,
+                subject: 'Your EduFuture Verification Code',
+                html: `<h3>Your verification code is: <strong>${code}</strong></h3><p>This code expires in 10 minutes.</p>`
+            });
+
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Email send timeout')), 5000)
+            );
+
             try {
-                const transporter = nodemailer.createTransport({
-                    service: 'gmail',
-                    auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
-                });
-                await transporter.sendMail({
-                    from: `"EduFuture" <${process.env.EMAIL_USER}>`,
-                    to: email,
-                    subject: 'Your EduFuture Verification Code',
-                    html: `<h3>Your verification code is: <strong>${code}</strong></h3><p>This code expires in 10 minutes.</p>`
-                });
+                await Promise.race([sendPromise, timeoutPromise]);
                 emailSent = true;
             } catch (emailError) {
-                console.error('Email could not be sent:', emailError.message);
+                console.error('Email send failed or timed out:', emailError.message);
+                emailSent = false;
             }
         }
 
+        // Respond
         if (emailSent) {
             res.json({ message: 'Verification code sent to your email' });
         } else {
