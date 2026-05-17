@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const uniAdminRoutes = require('./routes/uni-admin');
 
 // Import routes
 const studentRoutes = require('./routes/students');
@@ -48,5 +49,6 @@ app.listen(PORT, '0.0.0.0', () => {
 });
 const adminRoutes = require('./routes/admin');
 app.use('/api/admin', adminRoutes);
+app.use('/api/uni-admin', uniAdminRoutes);
 const aiRoutes = require('./routes/ai');
 app.use('/api/ai', aiRoutes);
