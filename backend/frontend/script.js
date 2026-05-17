@@ -107,65 +107,59 @@ function toggleMenu() { document.getElementById('navMenu').classList.toggle('act
 // ============================================
 // AUTHENTICATION (Modified for verification)
 // ============================================
-async function handleLogin(event) {
-    event.preventDefault();
-    const email = document.getElementById('loginEmail').value;
-    const password = document.getElementById('loginPassword').value;
-    const messageDiv = document.getElementById('loginMessage');
-    try {
-        const response = await fetch(`${API_URL}/students/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ Email: email, Password: password })
-        });
-        const data = await response.json();
-        if (response.ok) {
-            messageDiv.className = 'message success';
-            messageDiv.textContent = 'Login successful! Redirecting...';
-            localStorage.setItem('currentStudent', JSON.stringify(data.student));
-            setTimeout(() => { window.location.href = 'dashboard.html'; }, 1000);
-        } else {
-            messageDiv.className = 'message error';
-            messageDiv.textContent = data.error || 'Invalid credentials';
-        }
-    } catch (error) {
-        messageDiv.className = 'message error';
-        messageDiv.textContent = 'Connection error. Please try again.';
-    }
-}
-
 async function handleRegister(event) {
     event.preventDefault();
+    console.log('handleRegister called');
+
     const messageDiv = document.getElementById('registerMessage');
-    const email = document.getElementById('regEmail').value;
+    const email = document.getElementById('regEmail').value.trim();
     const password = document.getElementById('regPassword').value;
 
+    // Validate password
     if (password.length < 8) {
         messageDiv.className = 'message error';
         messageDiv.textContent = 'Password must be at least 8 characters';
         return;
     }
 
-    // Step 1: Send verification code
+    // Validate email
+    if (!email || !email.includes('@')) {
+        messageDiv.className = 'message error';
+        messageDiv.textContent = 'Please enter a valid email address';
+        return;
+    }
+
+    // Show loading
+    const submitBtn = document.querySelector('#registerStep1 button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Sending...';
+    messageDiv.className = 'message';
+    messageDiv.textContent = '';
+
     try {
+        console.log('Sending code to:', email);
         const response = await fetch(`${API_URL}/students/send-code`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email })
         });
         const data = await response.json();
+
         if (response.ok) {
-            // Show verification step
+            console.log('Code sent, showing step 2');
             document.getElementById('registerStep1').style.display = 'none';
             document.getElementById('registerStep2').style.display = 'block';
-            messageDiv.textContent = '';
         } else {
             messageDiv.className = 'message error';
-            messageDiv.textContent = data.error;
+            messageDiv.textContent = data.error || 'Failed to send code';
         }
     } catch (error) {
+        console.error('Send code error:', error);
         messageDiv.className = 'message error';
-        messageDiv.textContent = 'Connection error.';
+        messageDiv.textContent = 'Connection error. Please check your internet.';
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Send Verification Code';
     }
 }
 
