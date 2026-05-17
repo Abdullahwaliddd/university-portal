@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 
-// Get all universities
 router.get('/', async (req, res) => {
     try {
         const [rows] = await db.query('SELECT * FROM university');
@@ -12,7 +11,6 @@ router.get('/', async (req, res) => {
     }
 });
 
-// Get university by ID with colleges, majors, study plans, courses, fees, pros/cons
 router.get('/:id', async (req, res) => {
     try {
         const [university] = await db.query('SELECT * FROM university WHERE University_ID = ?', [req.params.id]);
@@ -20,11 +18,9 @@ router.get('/:id', async (req, res) => {
 
         const [colleges] = await db.query('SELECT * FROM college WHERE University_ID = ?', [req.params.id]);
 
-        // Get majors for each college
         for (let college of colleges) {
             const [majors] = await db.query('SELECT * FROM major WHERE College_ID = ?', [college.College_ID]);
 
-            // Get study plans and courses for each major, plus fees
             for (let major of majors) {
                 const [studyPlans] = await db.query('SELECT * FROM study_plan WHERE Major_ID = ?', [major.Major_ID]);
 
@@ -38,7 +34,7 @@ router.get('/:id', async (req, res) => {
 
                 major.studyPlans = studyPlans;
 
-                // Attach fees to major (latest academic year)
+                // Attach latest fee
                 const [fees] = await db.query(
                     'SELECT * FROM fee WHERE Major_ID = ? ORDER BY Academic_Year DESC LIMIT 1',
                     [major.Major_ID]
@@ -49,7 +45,7 @@ router.get('/:id', async (req, res) => {
             college.majors = majors;
         }
 
-        // Get pros/cons for this university
+        // Pros & cons
         const [prosCons] = await db.query(
             'SELECT * FROM university_pros_cons WHERE university_id = ?',
             [req.params.id]

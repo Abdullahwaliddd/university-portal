@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 
-// Get all majors (with university ID)
 router.get('/', async (req, res) => {
     try {
         const [rows] = await db.query(`
@@ -17,7 +16,6 @@ router.get('/', async (req, res) => {
     }
 });
 
-// Get major by ID with study plan and courses
 router.get('/:id', async (req, res) => {
     try {
         const [major] = await db.query('SELECT * FROM major WHERE Major_ID = ?', [req.params.id]);
@@ -38,7 +36,6 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-// Search majors
 router.get('/search/:query', async (req, res) => {
     try {
         const [rows] = await db.query(

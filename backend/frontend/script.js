@@ -16,9 +16,7 @@ function initPage() {
     }
 }
 
-// ============================================
-// HOME PAGE
-// ============================================
+// ========== HOME PAGE ==========
 async function loadHomePage() {
     try {
         const [universities, students, majors] = await Promise.all([
@@ -104,62 +102,86 @@ function scrollToAbout() { const el = document.getElementById('about'); if (el) 
 function scrollToContact() { const el = document.getElementById('contact'); if (el) el.scrollIntoView({ behavior: 'smooth' }); }
 function toggleMenu() { document.getElementById('navMenu').classList.toggle('active'); }
 
-// ============================================
-// AUTHENTICATION (Modified for verification)
-// ============================================
+// ========== AUTH ==========
+async function handleLogin(event) {
+    event.preventDefault();
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
+    const messageDiv = document.getElementById('loginMessage');
+    try {
+        const response = await fetch(`${API_URL}/students/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ Email: email, Password: password })
+        });
+        const data = await response.json();
+        if (response.ok) {
+            messageDiv.className = 'message success';
+            messageDiv.textContent = 'Login successful! Redirecting...';
+            localStorage.setItem('currentStudent', JSON.stringify(data.student));
+            setTimeout(() => { window.location.href = 'dashboard.html'; }, 1000);
+        } else {
+            messageDiv.className = 'message error';
+            messageDiv.textContent = data.error || 'Invalid credentials';
+        }
+    } catch (error) {
+        messageDiv.className = 'message error';
+        messageDiv.textContent = 'Connection error. Please try again.';
+    }
+}
+
 async function handleRegister(event) {
     event.preventDefault();
-    console.log('handleRegister called');
-
     const messageDiv = document.getElementById('registerMessage');
     const email = document.getElementById('regEmail').value.trim();
     const password = document.getElementById('regPassword').value;
 
-    // Validate password
     if (password.length < 8) {
         messageDiv.className = 'message error';
         messageDiv.textContent = 'Password must be at least 8 characters';
         return;
     }
-
-    // Validate email
-    if (!email || !email.includes('@')) {
+    if (!email.includes('@')) {
         messageDiv.className = 'message error';
-        messageDiv.textContent = 'Please enter a valid email address';
+        messageDiv.textContent = 'Please enter a valid email';
         return;
     }
 
-    // Show loading
-    const submitBtn = document.querySelector('#registerStep1 button[type="submit"]');
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Sending...';
-    messageDiv.className = 'message';
+    const btn = document.querySelector('#registerStep1 button[type="submit"]');
+    btn.disabled = true;
+    btn.textContent = 'Sending...';
     messageDiv.textContent = '';
 
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+
     try {
-        console.log('Sending code to:', email);
         const response = await fetch(`${API_URL}/students/send-code`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email })
+            body: JSON.stringify({ email }),
+            signal: controller.signal
         });
+        clearTimeout(timeout);
         const data = await response.json();
-
         if (response.ok) {
-            console.log('Code sent, showing step 2');
             document.getElementById('registerStep1').style.display = 'none';
             document.getElementById('registerStep2').style.display = 'block';
         } else {
             messageDiv.className = 'message error';
-            messageDiv.textContent = data.error || 'Failed to send code';
+            messageDiv.textContent = data.error;
         }
     } catch (error) {
-        console.error('Send code error:', error);
-        messageDiv.className = 'message error';
-        messageDiv.textContent = 'Connection error. Please check your internet.';
+        if (error.name === 'AbortError') {
+            messageDiv.className = 'message error';
+            messageDiv.textContent = 'Request timed out. Please try again.';
+        } else {
+            messageDiv.className = 'message error';
+            messageDiv.textContent = 'Connection error.';
+        }
     } finally {
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Send Verification Code';
+        btn.disabled = false;
+        btn.textContent = 'Send Verification Code';
     }
 }
 
@@ -207,9 +229,7 @@ function checkAuth() {
     return student;
 }
 
-// ============================================
-// UNIVERSITY DETAIL PAGE (with fees & pros/cons)
-// ============================================
+// ========== UNIVERSITY DETAIL ==========
 async function loadUniversityDetail() {
     const urlParams = new URLSearchParams(window.location.search);
     const uniId = urlParams.get('id');
@@ -220,7 +240,6 @@ async function loadUniversityDetail() {
         const university = await response.json();
         displayUniversityDetail(university);
     } catch (error) {
-        console.error('Error:', error);
         document.getElementById('universityDetail').innerHTML = '<p style="color:red;">Error loading university details.</p>';
     }
 }
@@ -245,8 +264,8 @@ function displayUniversityDetail(uni) {
                     ${uni.Email ? `<span class="meta-tag">📧 ${uni.Email}</span>` : ''}
                     ${uni.Phone ? `<span class="meta-tag">📞 ${uni.Phone}</span>` : ''}
                 </div>
-                <p>A prestigious university offering world-class education with state-of-the-art facilities and experienced faculty.</p>
-                ${uni.Website ? (() => { let url = uni.Website; if (!url.startsWith('http://') && !url.startsWith('https://')) url = 'https://' + url; return `<p><a href="${url}" target="_blank" rel="noopener noreferrer" style="color:#ff6600;">Visit Official Website →</a></p>`; })() : ''}
+                <p>A prestigious university offering world-class education.</p>
+                ${uni.Website ? (() => { let url = uni.Website; if (!url.startsWith('http')) url = 'https://' + url; return `<p><a href="${url}" target="_blank" style="color:#ff6600;">Visit Official Website →</a></p>`; })() : ''}
                 ${localStorage.getItem('currentStudent') ? `<a href="dashboard.html" class="apply-btn">Apply Now →</a>` : `<a href="login.html" class="apply-btn">Login to Apply →</a>`}
             </div>
         </div>
@@ -258,22 +277,20 @@ function displayUniversityDetail(uni) {
             <ul>${uni.prosCons.filter(p => p.type === 'pro').map(p => `<li>${p.text}</li>`).join('')}</ul>
             <h4 style="color:#c62828;">❌ Cons</h4>
             <ul>${uni.prosCons.filter(p => p.type === 'con').map(p => `<li>${p.text}</li>`).join('')}</ul>
-        </div>
-        ` : ''}
+        </div>` : ''}
 
         ${photos.length > 0 ? `
         <div class="photo-gallery-section">
-            <h2 style="font-size:28px;margin-bottom:20px;">📸 Campus Photos</h2>
+            <h2>📸 Campus Photos</h2>
             <div class="photo-gallery">
-                ${photos.map((photo, index) => `<div class="gallery-item" onclick="openPhotoModal('${photo}')"><img src="${photo}" alt="Campus Photo ${index + 1}"></div>`).join('')}
+                ${photos.map(photo => `<div class="gallery-item" onclick="openPhotoModal('${photo}')"><img src="${photo}" alt="Photo"></div>`).join('')}
             </div>
         </div>` : ''}
 
-        <h2 style="font-size:32px;margin:30px 0 20px;">Colleges & Programs</h2>
-        <p style="color:#666;margin-bottom:20px;">Click on a college to view detailed study plan</p>
+        <h2>Colleges & Programs</h2>
+        <p style="color:#666;">Click on a college to view detailed study plan</p>
         <div class="colleges-grid">
             ${uni.colleges && uni.colleges.length > 0 ? uni.colleges.map(college => {
-                // Calculate fee range for this college
                 const allFees = college.majors.flatMap(m => m.fees || []);
                 const feeValues = allFees.map(f => (parseFloat(f.Tuition_Fee)||0)+(parseFloat(f.Registration_Fee)||0)+(parseFloat(f.Other_Fees)||0));
                 const minFee = feeValues.length ? Math.min(...feeValues) : null;
@@ -284,11 +301,12 @@ function displayUniversityDetail(uni) {
                     <h4>${college.Name}</h4>
                     <p>${college.Description || ''}</p>
                     ${feeText ? `<p style="color:#31487A;font-weight:600;">${feeText}</p>` : ''}
-                    ${college.majors && college.majors.length > 0 ? `<div class="majors-list">${college.majors.map(major => `<span class="major-tag">${major.Name} (${major.Degree_Type || 'Bachelor'})</span>`).join('')}</div>` : '<p style="font-size:12px;color:#999;">No majors available</p>'}
+                    ${college.majors && college.majors.length > 0 ? `<div class="majors-list">${college.majors.map(m => `<span class="major-tag">${m.Name} (${m.Degree_Type || 'Bachelor'})</span>`).join('')}</div>` : ''}
                     <p style="color:#ff6600;font-size:12px;margin-top:10px;">📚 Click to view study plan →</p>
-                </div>
-            `}).join('') : '<p>No colleges found for this university.</p>'}
+                </div>`;
+            }).join('') : '<p>No colleges found.</p>'}
         </div>
+
         <div id="studyPlanModal" class="modal" style="display:none;">
             <div class="modal-content">
                 <div class="modal-header"><h3 id="modalTitle">Study Plan</h3><button class="modal-close" onclick="closeModal()">&times;</button></div>
@@ -298,12 +316,12 @@ function displayUniversityDetail(uni) {
     `;
 }
 
-function openPhotoModal(photoSrc) {
+function openPhotoModal(src) {
     const modal = document.getElementById('photoModal');
     if (!modal) return;
-    document.getElementById('modalImage').src = photoSrc;
+    document.getElementById('modalImage').src = src;
     modal.style.display = 'block';
-    modal.onclick = function(e) { if (e.target === modal || e.target.classList.contains('modal-close')) closePhotoModal(); };
+    modal.onclick = function(e) { if (e.target === modal) closePhotoModal(); };
 }
 function closePhotoModal() { const modal = document.getElementById('photoModal'); if (modal) modal.style.display = 'none'; }
 
@@ -312,7 +330,7 @@ function updateNavAuth() {
     if (!navAuth) return;
     const student = JSON.parse(localStorage.getItem('currentStudent'));
     if (student) {
-        navAuth.innerHTML = `<span style="margin-right:10px;font-size:14px;">👋 ${student.First_Name}</span><a href="dashboard.html" class="btn-primary">Dashboard</a><button class="btn-outline" onclick="logout()">Logout</button>`;
+        navAuth.innerHTML = `<span>👋 ${student.First_Name}</span><a href="dashboard.html" class="btn-primary">Dashboard</a><button class="btn-outline" onclick="logout()">Logout</button>`;
     } else {
         navAuth.innerHTML = `<a href="login.html" class="btn-outline">Login</a><a href="register.html" class="btn-primary">Register</a>`;
     }
@@ -324,34 +342,34 @@ function showStudyPlan(collegeName, majors) {
     document.getElementById('modalTitle').textContent = collegeName + ' - Study Plan';
     let html = '';
     if (majors.length === 0) {
-        html = '<p>No study plans available for this college.</p>';
+        html = '<p>No study plans available.</p>';
     } else {
         majors.forEach(major => {
-            html += `<div style="margin-bottom:30px;border:1px solid #ddd;border-radius:10px;padding:20px;"><h4 style="color:#1a237e;margin-bottom:10px;">🎓 ${major.Name} <span style="font-size:14px;color:#666;">(${major.Degree_Type || 'Bachelor'} - ${major.Duration_Years || 4} years)</span></h4>`;
+            html += `<div style="margin-bottom:30px;"><h4>🎓 ${major.Name} <span>(${major.Degree_Type || 'Bachelor'} - ${major.Duration_Years || 4} years)</span></h4>`;
             if (major.studyPlans && major.studyPlans.length > 0) {
                 major.studyPlans.forEach(plan => {
-                    html += `<p style="color:#ff6600;font-weight:600;margin:10px 0;">📋 ${plan.Plan_Name} - ${plan.Total_Credit_Hours || 0} Credit Hours</p>`;
+                    html += `<p>📋 ${plan.Plan_Name} - ${plan.Total_Credit_Hours || 0} Credit Hours</p>`;
                     if (plan.courses && plan.courses.length > 0) {
                         const levels = {};
-                        plan.courses.forEach(course => {
-                            const level = course.Level || 'Other';
+                        plan.courses.forEach(c => {
+                            const level = c.Level || 'Other';
                             if (!levels[level]) levels[level] = [];
-                            levels[level].push(course);
+                            levels[level].push(c);
                         });
-                        html += '<div style="overflow-x:auto;"><table style="width:100%;font-size:13px;border-collapse:collapse;"><thead><tr style="background:#f0f0f0;"><th style="padding:8px;border:1px solid #ddd;">Code</th><th style="padding:8px;border:1px solid #ddd;">Course Name</th><th style="padding:8px;border:1px solid #ddd;">Credits</th><th style="padding:8px;border:1px solid #ddd;">Semester</th><th style="padding:8px;border:1px solid #ddd;">Level</th></tr></thead><tbody>';
+                        html += '<table style="width:100%;"><thead><tr><th>Code</th><th>Name</th><th>Credits</th><th>Semester</th><th>Level</th></tr></thead><tbody>';
                         Object.keys(levels).sort().forEach(level => {
-                            html += `<tr><td colspan="5" style="background:#e8eaf6;padding:8px;font-weight:600;">📚 ${level}</td></tr>`;
-                            levels[level].forEach(course => {
-                                html += `<tr><td style="padding:6px;border:1px solid #ddd;">${course.Course_Code || 'N/A'}</td><td style="padding:6px;border:1px solid #ddd;">${course.Course_Name}</td><td style="padding:6px;border:1px solid #ddd;text-align:center;">${course.Credit_Hours || '-'}</td><td style="padding:6px;border:1px solid #ddd;">${course.Semester || '-'}</td><td style="padding:6px;border:1px solid #ddd;">${course.Level || '-'}</td></tr>`;
+                            html += `<tr><td colspan="5" style="background:#e8eaf6;">📚 ${level}</td></tr>`;
+                            levels[level].forEach(c => {
+                                html += `<tr><td>${c.Course_Code||''}</td><td>${c.Course_Name}</td><td>${c.Credit_Hours||''}</td><td>${c.Semester||''}</td><td>${c.Level||''}</td></tr>`;
                             });
                         });
-                        html += '</tbody></table></div>';
+                        html += '</tbody></table>';
                     } else {
-                        html += '<p style="color:#999;">No courses available for this plan.</p>';
+                        html += '<p>No courses available.</p>';
                     }
                 });
             } else {
-                html += '<p style="color:#999;">No study plan available for this major.</p>';
+                html += '<p>No study plan available.</p>';
             }
             html += '</div>';
         });
@@ -360,12 +378,9 @@ function showStudyPlan(collegeName, majors) {
     modal.style.display = 'block';
     modal.onclick = function(e) { if (e.target === modal) closeModal(); };
 }
+function closeModal() { document.getElementById('studyPlanModal').style.display = 'none'; }
 
-function closeModal() { const modal = document.getElementById('studyPlanModal'); if (modal) modal.style.display = 'none'; }
-
-// ============================================
-// DASHBOARD
-// ============================================
+// ========== DASHBOARD ==========
 async function loadDashboard() {
     const student = checkAuth();
     if (!student) return;
@@ -394,7 +409,7 @@ async function loadMyApplications(studentId) {
     try {
         const response = await fetch(`${API_URL}/students/${studentId}/applications`);
         const applications = await response.json();
-        content.innerHTML = `<h2 style="margin-bottom:25px;">My Applications</h2>${applications.length === 0 ? '<p>No applications yet. <a href="#" onclick="showDashboardTab(\'newApp\', this)" style="color:#ff6600;">Apply now</a></p>' : `<div class="applications-list">${applications.map(app => `<div class="application-item"><div class="app-info"><h4>${app.Major_Name}</h4><p>${app.University_Name} | Applied: ${new Date(app.Application_Date).toLocaleDateString()}</p><p>GPA: ${app.GPA} | Score: ${app.High_School_Score}</p></div><span class="status-badge status-${app.Status.toLowerCase()}">${app.Status}</span></div>`).join('')}</div>`}`;
+        content.innerHTML = `<h2>My Applications</h2>${applications.length === 0 ? '<p>No applications yet. <a href="#" onclick="showDashboardTab(\'newApp\', this)">Apply now</a></p>' : `<div class="applications-list">${applications.map(a => `<div class="application-item"><div class="app-info"><h4>${a.Major_Name}</h4><p>${a.University_Name} | ${new Date(a.Application_Date).toLocaleDateString()}</p><p>GPA: ${a.GPA} | Score: ${a.High_School_Score}</p></div><span class="status-badge status-${a.Status.toLowerCase()}">${a.Status}</span></div>`).join('')}</div>`}`;
     } catch (error) {
         content.innerHTML = '<p>Error loading applications.</p>';
     }
@@ -408,9 +423,9 @@ async function loadNewApplicationForm() {
             fetch(`${API_URL}/majors`).then(r => r.json()),
             fetch(`${API_URL}/universities`).then(r => r.json())
         ]);
-        window.allMajors = majors; // store for filtering
+        window.allMajors = majors;
         content.innerHTML = `
-            <h2 style="margin-bottom:25px;">Apply to University</h2>
+            <h2>Apply to University</h2>
             <div class="application-form">
                 <form onsubmit="submitApplication(event)">
                     <div class="form-group"><label>Student</label><input type="text" value="${student.First_Name} ${student.Last_Name}" disabled></div>
@@ -423,15 +438,13 @@ async function loadNewApplicationForm() {
                     </div>
                     <div class="form-group">
                         <label>Select Major</label>
-                        <select id="appMajor" required>
-                            <option value="">Choose a university first</option>
-                        </select>
+                        <select id="appMajor" required><option value="">Choose a university first</option></select>
                     </div>
                     <div class="form-row">
-                        <div class="form-group"><label>GPA (0-4)</label><input type="number" id="appGPA" step="0.01" min="0" max="4" placeholder="e.g., 3.5" required></div>
-                        <div class="form-group"><label>High School Score (0-100)</label><input type="number" id="appScore" step="0.01" min="0" max="100" placeholder="e.g., 95" required></div>
+                        <div class="form-group"><label>GPA (0-4)</label><input type="number" id="appGPA" step="0.01" min="0" max="4" required></div>
+                        <div class="form-group"><label>High School Score (0-100)</label><input type="number" id="appScore" step="0.01" min="0" max="100" required></div>
                     </div>
-                    <button type="submit" class="btn-primary btn-full" style="margin-top:10px;">Submit Application</button>
+                    <button type="submit" class="btn-primary btn-full">Submit Application</button>
                 </form>
                 <div id="appMessage" class="message"></div>
             </div>`;
@@ -440,40 +453,56 @@ async function loadNewApplicationForm() {
     }
 }
 
-// Filter majors dropdown based on selected university
 function filterMajorsByUniversity() {
     const uniId = parseInt(document.getElementById('appUni').value);
     const majorSelect = document.getElementById('appMajor');
     const allMajors = window.allMajors || [];
-    const uniIdField = allMajors[0] && 'University_ID' in allMajors[0] ? 'University_ID' : (allMajors[0] && 'university_id' in allMajors[0] ? 'university_id' : null);
-    if (!uniIdField) {
-        majorSelect.innerHTML = '<option value="">Error loading majors</option>';
-        return;
-    }
-    const filtered = allMajors.filter(m => parseInt(m[uniIdField]) === uniId);
-    if (filtered.length === 0) {
-        majorSelect.innerHTML = '<option value="">No majors available for this university</option>';
-    } else {
-        majorSelect.innerHTML = '<option value="">Select a major...</option>' +
-            filtered.map(m => `<option value="${m.Major_ID}">${m.Name} (${m.Degree_Type || 'Bachelor'})</option>`).join('');
-    }
+    const field = allMajors[0] && 'University_ID' in allMajors[0] ? 'University_ID' : (allMajors[0] && 'university_id' in allMajors[0] ? 'university_id' : null);
+    if (!field) { majorSelect.innerHTML = '<option value="">Error loading majors</option>'; return; }
+    const filtered = allMajors.filter(m => parseInt(m[field]) === uniId);
+    majorSelect.innerHTML = filtered.length === 0 ? '<option value="">No majors available</option>' : '<option value="">Select a major...</option>' + filtered.map(m => `<option value="${m.Major_ID}">${m.Name} (${m.Degree_Type || 'Bachelor'})</option>`).join('');
 }
 
 async function submitApplication(event) {
     event.preventDefault();
     const student = JSON.parse(localStorage.getItem('currentStudent'));
     const messageDiv = document.getElementById('appMessage');
-    const appData = { Student_ID: student.Student_ID, Major_ID: document.getElementById('appMajor').value, GPA: document.getElementById('appGPA').value, High_School_Score: document.getElementById('appScore').value };
+    const appData = {
+        Student_ID: student.Student_ID,
+        Major_ID: document.getElementById('appMajor').value,
+        GPA: document.getElementById('appGPA').value,
+        High_School_Score: document.getElementById('appScore').value
+    };
     try {
-        const response = await fetch(`${API_URL}/applications`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(appData) });
-        if (response.ok) { messageDiv.className = 'message success'; messageDiv.textContent = 'Application submitted successfully!'; setTimeout(() => { loadMyApplications(student.Student_ID); }, 1500); }
-        else { const data = await response.json(); messageDiv.className = 'message error'; messageDiv.textContent = data.error || 'Failed to submit'; }
-    } catch (error) { messageDiv.className = 'message error'; messageDiv.textContent = 'Connection error.'; }
+        const response = await fetch(`${API_URL}/applications`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(appData)
+        });
+        if (response.ok) {
+            messageDiv.className = 'message success';
+            messageDiv.textContent = 'Application submitted!';
+            setTimeout(() => loadMyApplications(student.Student_ID), 1500);
+        } else {
+            const data = await response.json();
+            messageDiv.className = 'message error';
+            messageDiv.textContent = data.error || 'Failed to submit';
+        }
+    } catch (error) {
+        messageDiv.className = 'message error';
+        messageDiv.textContent = 'Connection error.';
+    }
 }
 
 function loadProfileTab(student) {
     const content = document.getElementById('dashboardContent');
-    content.innerHTML = `<h2 style="margin-bottom:25px;">My Profile</h2><div class="application-form"><div class="form-row"><div class="form-group"><label>First Name</label><input type="text" value="${student.First_Name}" disabled></div><div class="form-group"><label>Last Name</label><input type="text" value="${student.Last_Name}" disabled></div></div><div class="form-group"><label>Email</label><input type="email" value="${student.Email}" disabled></div><div class="form-row"><div class="form-group"><label>Gender</label><input type="text" value="${student.Gender || 'N/A'}" disabled></div><div class="form-group"><label>Date of Birth</label><input type="text" value="${student.Date_of_Birth ? new Date(student.Date_of_Birth).toLocaleDateString() : 'N/A'}" disabled></div></div><div class="form-group"><label>Phone</label><input type="text" value="${student.Phone || 'N/A'}" disabled></div><div class="form-group"><label>Address</label><input type="text" value="${student.Address || 'N/A'}" disabled></div></div>`;
+    content.innerHTML = `<h2>My Profile</h2><div class="application-form">
+        <div class="form-row"><div class="form-group"><label>First Name</label><input value="${student.First_Name}" disabled></div><div class="form-group"><label>Last Name</label><input value="${student.Last_Name}" disabled></div></div>
+        <div class="form-group"><label>Email</label><input value="${student.Email}" disabled></div>
+        <div class="form-row"><div class="form-group"><label>Gender</label><input value="${student.Gender || ''}" disabled></div><div class="form-group"><label>Date of Birth</label><input value="${student.Date_of_Birth ? new Date(student.Date_of_Birth).toLocaleDateString() : ''}" disabled></div></div>
+        <div class="form-group"><label>Phone</label><input value="${student.Phone || ''}" disabled></div>
+        <div class="form-group"><label>Address</label><input value="${student.Address || ''}" disabled></div>
+    </div>`;
 }
 
-function handleContact(event) { event.preventDefault(); alert('Thank you for your message! We will get back to you soon.'); event.target.reset(); }
+function handleContact(event) { event.preventDefault(); alert('Thank you for your message!'); event.target.reset(); }
