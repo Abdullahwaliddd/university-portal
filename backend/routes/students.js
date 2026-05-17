@@ -1,12 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
-const sgMail = require('@sendgrid/mail');
+const { Resend } = require('resend');
 
-// Set SendGrid API key from environment
-if (process.env.SENDGRID_API_KEY) {
-    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-}
+// Initialize Resend with API key from environment
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 // Get all students
 router.get('/', async (req, res) => {
@@ -107,7 +105,7 @@ router.get('/:id/applications', async (req, res) => {
     }
 });
 
-// ---------- Email Verification (SendGrid + fallback) ----------
+// ---------- Email Verification with Resend (fallback always available) ----------
 
 router.post('/send-code', async (req, res) => {
     const { email } = req.body;
@@ -125,23 +123,35 @@ router.post('/send-code', async (req, res) => {
 
         let emailSent = false;
 
-        // Send via SendGrid if API key is configured
-        if (process.env.SENDGRID_API_KEY) {
-            const msg = {
-                to: email,
-                from: process.env.SENDGRID_FROM_EMAIL || 'noreply@edufuture.com',
-                subject: 'Your EduFuture Verification Code',
-                html: `<h3>Your verification code is: <strong>${code}</strong></h3><p>This code expires in 10 minutes.</p>`
-            };
-
+        // Try sending via Resend if configured
+        if (resend && process.env.RESEND_API_KEY) {
             try {
-                await sgMail.send(msg);
+                await resend.emails.send({
+                    from: process.env.RESEND_FROM_EMAIL || 'EduFuture <onboarding@resend.dev>',
+                    to: email,
+                    subject: 'Your EduFuture Verification Code',
+                    html: `
+                        <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto;">
+                            <h2 style="color: #31487A;">Welcome to EduFuture!</h2>
+                            <p>Thank you for registering. Please use the verification code below to complete your account:</p>
+                            <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
+                                <span style="font-size: 28px; font-weight: bold; letter-spacing: 4px; color: #192338;">${code}</span>
+                            </div>
+                            <p>This code is valid for <strong>10 minutes</strong>.</p>
+                            <p>If you didn't request this, you can safely ignore this email.</p>
+                            <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+                            <p style="font-size: 12px; color: #888;">EduFuture – Opening the gate to your future.</p>
+                        </div>
+                    `,
+                    text: `Your EduFuture verification code is: ${code}`,
+                });
                 emailSent = true;
-            } catch (sendError) {
-                console.error('SendGrid error:', sendError.response?.body || sendError.message);
+            } catch (resendError) {
+                console.error('Resend error:', resendError);
             }
         }
 
+        // Always respond, with fallback if email didn't go out
         if (emailSent) {
             res.json({ message: 'Verification code sent to your email' });
         } else {
