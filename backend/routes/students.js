@@ -105,7 +105,7 @@ router.get('/:id/applications', async (req, res) => {
     }
 });
 
-// ---------- Email Verification with Resend (fallback always available) ----------
+// ---------- Email Verification with Resend (debug logging) ----------
 
 router.post('/send-code', async (req, res) => {
     const { email } = req.body;
@@ -123,10 +123,16 @@ router.post('/send-code', async (req, res) => {
 
         let emailSent = false;
 
-        // Try sending via Resend if configured
+        // ---------- DETAILED LOGGING ----------
+        console.log('--- SEND-CODE DEBUG ---');
+        console.log('Target email:', email);
+        console.log('RESEND_API_KEY exists:', !!process.env.RESEND_API_KEY);
+        console.log('RESEND_FROM_EMAIL:', process.env.RESEND_FROM_EMAIL || 'not set');
+        console.log('Resend client initialized:', !!resend);
+
         if (resend && process.env.RESEND_API_KEY) {
             try {
-                await resend.emails.send({
+                const result = await resend.emails.send({
                     from: process.env.RESEND_FROM_EMAIL || 'EduFuture <onboarding@resend.dev>',
                     to: email,
                     subject: 'Your EduFuture Verification Code',
@@ -145,13 +151,15 @@ router.post('/send-code', async (req, res) => {
                     `,
                     text: `Your EduFuture verification code is: ${code}`,
                 });
+                console.log('Resend API response:', result);
                 emailSent = true;
             } catch (resendError) {
-                console.error('Resend error:', resendError);
+                console.error('Resend error details:', resendError);
             }
+        } else {
+            console.log('Resend not configured – skipping email');
         }
 
-        // Always respond, with fallback if email didn't go out
         if (emailSent) {
             res.json({ message: 'Verification code sent to your email' });
         } else {
