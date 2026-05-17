@@ -19,12 +19,12 @@ router.get('/', async (req, res) => {
     }
 });
 
-// Create new application
+// Create new application (CORRECTED)
 router.post('/', async (req, res) => {
     try {
         const { Student_ID, Major_ID, GPA, High_School_Score } = req.body;
         const [result] = await db.query(
-            'INSERT INTO application (Application_Date, Status, GPA, High_School_Score, Student_ID, Major_ID) VALUES (CURDATE(), "Pending", ?, ?, ?, ?)',
+            "INSERT INTO application (Application_Date, Status, GPA, High_School_Score, Student_ID, Major_ID) VALUES (CURDATE(), 'Pending', ?, ?, ?, ?)",
             [GPA, High_School_Score, Student_ID, Major_ID]
         );
         res.status(201).json({ id: result.insertId, message: 'Application submitted successfully' });
