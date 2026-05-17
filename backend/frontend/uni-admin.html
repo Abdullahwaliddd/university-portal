@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>University Admin Panel – EduFuture</title>
+    <style>
+        :root {
+            --oxford: #192338;
+            --cadet: #1E2E4F;
+            --yinmn: #31487A;
+            --jordy: #8FB3E2;
+            --lavender: #D9E1F1;
+            --white: #fff;
+            --dark-bg: #0d1117;
+            --card-bg: #161b22;
+            --border: #30363d;
+            --text: #c9d1d9;
+            --text-light: #8b949e;
+            --accent: #58a6ff;
+            --danger: #f85149;
+            --success: #3fb950;
+            --warning: #d2991d;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: var(--dark-bg);
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        /* Login Card */
+        .login-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 40px;
+            width: 400px;
+            max-width: 90%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            animation: fadeInUp 0.6s ease;
+        }
+        .login-card h2 { color: var(--jordy); margin-bottom: 8px; }
+        .login-card p { color: var(--text-light); margin-bottom: 24px; }
+        .form-group { margin-bottom: 18px; }
+        .form-group label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px; color: var(--text-light); }
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            background: var(--dark-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 15px;
+            transition: border-color 0.3s;
+        }
+        .form-group input:focus { outline: none; border-color: var(--jordy); }
+        .btn {
+            width: 100%;
+            padding: 12px;
+            background: var(--yinmn);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .btn:hover { background: #3d5a99; }
+        .error-msg {
+            color: var(--danger);
+            font-size: 14px;
+            margin-top: 10px;
+            display: none;
+        }
+        .error-msg.show { display: block; }
+
+        /* Dashboard (hidden initially) */
+        .dashboard {
+            display: none;
+            width: 100%;
+            max-width: 1200px;
+            padding: 20px;
+            animation: fadeIn 0.5s ease;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .header h1 { font-size: 28px; color: var(--jordy); }
+        .header .logout-btn {
+            padding: 8px 20px;
+            background: transparent;
+            border: 1px solid var(--danger);
+            color: var(--danger);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .logout-btn:hover { background: var(--danger); color: white; }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 18px;
+            text-align: center;
+            animation: fadeInUp 0.5s ease backwards;
+        }
+        .stat-card h3 { font-size: 32px; color: var(--accent); }
+        .stat-card p { color: var(--text-light); margin-top: 4px; }
+        .app-table {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            overflow-x: auto;
+        }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 14px 16px; text-align: left; border-bottom: 1px solid var(--border); }
+        th { color: var(--text-light); font-weight: 600; font-size: 13px; }
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-block;
+        }
+        .status-pending { background: rgba(210,153,29,0.2); color: var(--warning); }
+        .status-accepted { background: rgba(63,185,80,0.2); color: var(--success); }
+        .status-rejected { background: rgba(248,81,73,0.2); color: var(--danger); }
+        .actions { display: flex; gap: 8px; }
+        .btn-sm {
+            padding: 5px 14px;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-accept { background: var(--success); color: white; }
+        .btn-accept:hover { background: #2ea042; }
+        .btn-reject { background: var(--danger); color: white; }
+        .btn-reject:hover { background: #d63c34; }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; } to { opacity: 1; }
+        }
+        @media (max-width: 600px) {
+            .header { flex-direction: column; align-items: flex-start; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Container -->
+    <div id="loginContainer" class="login-card">
+        <h2>🏛️ University Admin</h2>
+        <p>Sign in to manage your applications</p>
+        <form onsubmit="handleUniLogin(event)">
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="loginEmail" required>
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="loginPassword" required>
+            </div>
+            <button type="submit" class="btn">Sign In</button>
+            <div class="error-msg" id="loginError"></div>
+        </form>
+    </div>
+
+    <!-- Dashboard Container (hidden initially) -->
+    <div id="dashboardContainer" class="dashboard">
+        <div class="header">
+            <h1 id="uniName">University Dashboard</h1>
+            <button class="logout-btn" onclick="logoutUniAdmin()">🚪 Logout</button>
+        </div>
+        <div class="stats">
+            <div class="stat-card"><h3 id="totalApps">0</h3><p>Total Applications</p></div>
+            <div class="stat-card"><h3 id="pendingApps">0</h3><p>Pending</p></div>
+            <div class="stat-card"><h3 id="acceptedApps">0</h3><p>Accepted</p></div>
+            <div class="stat-card"><h3 id="rejectedApps">0</h3><p>Rejected</p></div>
+        </div>
+        <div class="app-table">
+            <table>
+                <thead>
+                    <tr><th>ID</th><th>Student</th><th>Email</th><th>Major</th><th>GPA</th><th>Score</th><th>Status</th><th>Actions</th></tr>
+                </thead>
+                <tbody id="appTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const API = window.location.origin + '/api/uni-admin';
+        let currentAdmin = JSON.parse(localStorage.getItem('uniAdmin'));
+
+        if (currentAdmin) {
+            // Already logged in – show dashboard
+            document.getElementById('loginContainer').style.display = 'none';
+            document.getElementById('dashboardContainer').style.display = 'block';
+            loadDashboard(currentAdmin);
+        }
+
+        async function handleUniLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const errorDiv = document.getElementById('loginError');
+            errorDiv.classList.remove('show');
+
+            try {
+                const res = await fetch(`${API}/login`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    localStorage.setItem('uniAdmin', JSON.stringify(data.admin));
+                    currentAdmin = data.admin;
+                    document.getElementById('loginContainer').style.display = 'none';
+                    document.getElementById('dashboardContainer').style.display = 'block';
+                    loadDashboard(currentAdmin);
+                } else {
+                    errorDiv.textContent = data.error || 'Login failed';
+                    errorDiv.classList.add('show');
+                }
+            } catch (err) {
+                errorDiv.textContent = 'Connection error';
+                errorDiv.classList.add('show');
+            }
+        }
+
+        function logoutUniAdmin() {
+            localStorage.removeItem('uniAdmin');
+            location.reload();
+        }
+
+        async function loadDashboard(admin) {
+            document.getElementById('uniName').textContent = `🏛️ ${admin.name || 'University'} Dashboard`;
+
+            try {
+                const res = await fetch(`${API}/applications`, {
+                    headers: {'x-university-id': admin.university_id}
+                });
+                const apps = await res.json();
+                renderStats(apps);
+                renderTable(apps);
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function renderStats(apps) {
+            document.getElementById('totalApps').textContent = apps.length;
+            document.getElementById('pendingApps').textContent = apps.filter(a => a.Status === 'Pending').length;
+            document.getElementById('acceptedApps').textContent = apps.filter(a => a.Status === 'Accepted').length;
+            document.getElementById('rejectedApps').textContent = apps.filter(a => a.Status === 'Rejected').length;
+        }
+
+        function renderTable(apps) {
+            const tbody = document.getElementById('appTableBody');
+            tbody.innerHTML = apps.map(app => `
+                <tr>
+                    <td>${app.Application_ID}</td>
+                    <td>${app.First_Name} ${app.Last_Name}</td>
+                    <td>${app.Student_Email}</td>
+                    <td>${app.Major_Name}</td>
+                    <td>${app.GPA}</td>
+                    <td>${app.High_School_Score}</td>
+                    <td><span class="status-badge status-${app.Status.toLowerCase()}">${app.Status}</span></td>
+                    <td>
+                        <div class="actions">
+                            <button class="btn-sm btn-accept" onclick="updateStatus(${app.Application_ID}, 'Accepted')">Accept</button>
+                            <button class="btn-sm btn-reject" onclick="updateStatus(${app.Application_ID}, 'Rejected')">Reject</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function updateStatus(appId, status) {
+            try {
+                await fetch(`${API}/applications/${appId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-university-id': currentAdmin.university_id
+                    },
+                    body: JSON.stringify({ status })
+                });
+                // Refresh dashboard
+                loadDashboard(currentAdmin);
+            } catch (err) {
+                alert('Failed to update status');
+            }
+        }
+    </script>
+</body>
+</html>
