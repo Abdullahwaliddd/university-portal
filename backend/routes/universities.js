@@ -34,7 +34,6 @@ router.get('/:id', async (req, res) => {
 
                 major.studyPlans = studyPlans;
 
-                // Attach latest fee
                 const [fees] = await db.query(
                     'SELECT * FROM fee WHERE Major_ID = ? ORDER BY Academic_Year DESC LIMIT 1',
                     [major.Major_ID]
@@ -45,7 +44,6 @@ router.get('/:id', async (req, res) => {
             college.majors = majors;
         }
 
-        // Pros & cons
         const [prosCons] = await db.query(
             'SELECT * FROM university_pros_cons WHERE university_id = ?',
             [req.params.id]

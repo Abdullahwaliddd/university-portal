@@ -102,7 +102,7 @@ router.get('/:id/applications', async (req, res) => {
     }
 });
 
-// ---------- Email Verification ----------
+// ---------- Email Verification with fallback ----------
 router.post('/send-code', async (req, res) => {
     const { email } = req.body;
     if (!email) return res.status(400).json({ error: 'Email required' });
@@ -111,33 +111,44 @@ router.post('/send-code', async (req, res) => {
         const [existing] = await db.query('SELECT Student_ID FROM student WHERE Email = ?', [email]);
         if (existing.length > 0) return res.status(409).json({ error: 'Email already registered' });
 
-        if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-            console.error('Email credentials missing');
-            return res.status(500).json({ error: 'Email service not configured.' });
-        }
-
         const code = Math.floor(100000 + Math.random() * 900000).toString();
         const expiresAt = new Date(Date.now() + 10 * 60000);
 
         await db.query('DELETE FROM email_verification WHERE email = ?', [email]);
         await db.query('INSERT INTO email_verification (email, code, expires_at) VALUES (?, ?, ?)', [email, code, expiresAt]);
 
-        const transporter = nodemailer.createTransport({
-            service: 'gmail',
-            auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
-        });
+        let emailSent = false;
+        if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+            try {
+                const transporter = nodemailer.createTransport({
+                    service: 'gmail',
+                    auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
+                });
+                await transporter.sendMail({
+                    from: `"EduFuture" <${process.env.EMAIL_USER}>`,
+                    to: email,
+                    subject: 'Your EduFuture Verification Code',
+                    html: `<h3>Your verification code is: <strong>${code}</strong></h3><p>This code expires in 10 minutes.</p>`
+                });
+                emailSent = true;
+            } catch (emailError) {
+                console.error('Email could not be sent:', emailError.message);
+            }
+        }
 
-        await transporter.sendMail({
-            from: `"EduFuture" <${process.env.EMAIL_USER}>`,
-            to: email,
-            subject: 'Your EduFuture Verification Code',
-            html: `<h3>Your verification code is: <strong>${code}</strong></h3><p>This code expires in 10 minutes.</p>`
-        });
-
-        res.json({ message: 'Verification code sent' });
+        if (emailSent) {
+            res.json({ message: 'Verification code sent to your email' });
+        } else {
+            // Fallback: show code directly
+            res.json({
+                message: 'Email could not be sent. Please use the code below for verification.',
+                code: code,
+                fallback: true
+            });
+        }
     } catch (error) {
-        console.error('Send-code error:', error);
-        res.status(500).json({ error: 'Failed to send verification code.' });
+        console.error('Send‑code error:', error);
+        res.status(500).json({ error: 'Failed to generate verification code. Please try again.' });
     }
 });
 
@@ -165,7 +176,7 @@ router.post('/verify-and-register', async (req, res) => {
         res.status(201).json({ id: result.insertId, message: 'Registration successful' });
     } catch (error) {
         if (error.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'Email already registered' });
-        console.error('Verify-and-register error:', error);
+        console.error('Verify‑and‑register error:', error);
         res.status(500).json({ error: error.message });
     }
 });

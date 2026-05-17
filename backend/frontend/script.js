@@ -164,12 +164,21 @@ async function handleRegister(event) {
         });
         clearTimeout(timeout);
         const data = await response.json();
+
         if (response.ok) {
             document.getElementById('registerStep1').style.display = 'none';
             document.getElementById('registerStep2').style.display = 'block';
+
+            const fallbackMsg = document.getElementById('fallbackMessage');
+            if (data.fallback) {
+                document.getElementById('fallbackCode').textContent = data.code;
+                if (fallbackMsg) fallbackMsg.style.display = 'block';
+            } else {
+                if (fallbackMsg) fallbackMsg.style.display = 'none';
+            }
         } else {
             messageDiv.className = 'message error';
-            messageDiv.textContent = data.error;
+            messageDiv.textContent = data.error || 'Something went wrong';
         }
     } catch (error) {
         if (error.name === 'AbortError') {
@@ -270,7 +279,6 @@ function displayUniversityDetail(uni) {
             </div>
         </div>
 
-        <!-- Pros & Cons -->
         ${uni.prosCons && uni.prosCons.length > 0 ? `
         <div class="pros-cons-section">
             <h4 style="color:#2e7d32;">✅ Pros</h4>

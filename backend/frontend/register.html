@@ -43,6 +43,9 @@
 
             <div id="registerStep2" style="display:none;">
                 <p style="color:#31487A;">A verification code has been sent to your email.</p>
+                <div id="fallbackMessage" style="display:none; background:#fff3cd; padding:12px; border-radius:8px; margin-bottom:15px;">
+                    ⚠️ Email could not be sent. Your verification code is: <strong id="fallbackCode"></strong>
+                </div>
                 <form onsubmit="verifyAndRegister(event)">
                     <div class="form-group"><label>Verification Code</label><input type="text" id="verificationCode" maxlength="6" required></div>
                     <button type="submit" class="btn-primary btn-full">Verify & Register</button>
