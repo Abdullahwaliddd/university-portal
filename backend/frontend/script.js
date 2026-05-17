@@ -16,6 +16,9 @@ function initPage() {
     }
 }
 
+// ============================================
+// HOME PAGE
+// ============================================
 async function loadHomePage() {
     try {
         const [universities, students, majors] = await Promise.all([
@@ -101,7 +104,9 @@ function scrollToAbout() { const el = document.getElementById('about'); if (el) 
 function scrollToContact() { const el = document.getElementById('contact'); if (el) el.scrollIntoView({ behavior: 'smooth' }); }
 function toggleMenu() { document.getElementById('navMenu').classList.toggle('active'); }
 
-// Authentication
+// ============================================
+// AUTHENTICATION (Modified for verification)
+// ============================================
 async function handleLogin(event) {
     event.preventDefault();
     const email = document.getElementById('loginEmail').value;
@@ -131,35 +136,73 @@ async function handleLogin(event) {
 
 async function handleRegister(event) {
     event.preventDefault();
+    const messageDiv = document.getElementById('registerMessage');
+    const email = document.getElementById('regEmail').value;
+    const password = document.getElementById('regPassword').value;
+
+    if (password.length < 8) {
+        messageDiv.className = 'message error';
+        messageDiv.textContent = 'Password must be at least 8 characters';
+        return;
+    }
+
+    // Step 1: Send verification code
+    try {
+        const response = await fetch(`${API_URL}/students/send-code`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email })
+        });
+        const data = await response.json();
+        if (response.ok) {
+            // Show verification step
+            document.getElementById('registerStep1').style.display = 'none';
+            document.getElementById('registerStep2').style.display = 'block';
+            messageDiv.textContent = '';
+        } else {
+            messageDiv.className = 'message error';
+            messageDiv.textContent = data.error;
+        }
+    } catch (error) {
+        messageDiv.className = 'message error';
+        messageDiv.textContent = 'Connection error.';
+    }
+}
+
+async function verifyAndRegister(event) {
+    event.preventDefault();
+    const messageDiv = document.getElementById('registerMessage');
+    const email = document.getElementById('regEmail').value;
+    const code = document.getElementById('verificationCode').value;
+
     const studentData = {
         First_Name: document.getElementById('regFirstName').value,
         Last_Name: document.getElementById('regLastName').value,
-        Email: document.getElementById('regEmail').value,
-        Password: document.getElementById('regPassword').value,
         Gender: document.getElementById('regGender').value,
         Date_of_Birth: document.getElementById('regDOB').value,
         Phone: document.getElementById('regPhone').value,
-        Address: document.getElementById('regAddress').value
+        Address: document.getElementById('regAddress').value,
+        Password: document.getElementById('regPassword').value
     };
-    const messageDiv = document.getElementById('registerMessage');
+
     try {
-        const response = await fetch(`${API_URL}/students`, {
+        const response = await fetch(`${API_URL}/students/verify-and-register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(studentData)
+            body: JSON.stringify({ email, code, ...studentData })
         });
         const data = await response.json();
         if (response.ok) {
             messageDiv.className = 'message success';
-            messageDiv.textContent = 'Registration successful! Redirecting to login...';
+            messageDiv.textContent = 'Registration successful! Redirecting...';
             setTimeout(() => { window.location.href = 'login.html'; }, 1500);
         } else {
             messageDiv.className = 'message error';
-            messageDiv.textContent = data.error || 'Registration failed';
+            messageDiv.textContent = data.error;
         }
     } catch (error) {
         messageDiv.className = 'message error';
-        messageDiv.textContent = 'Connection error. Please try again.';
+        messageDiv.textContent = 'Connection error.';
     }
 }
 
@@ -170,7 +213,9 @@ function checkAuth() {
     return student;
 }
 
-// University detail
+// ============================================
+// UNIVERSITY DETAIL PAGE (with fees & pros/cons)
+// ============================================
 async function loadUniversityDetail() {
     const urlParams = new URLSearchParams(window.location.search);
     const uniId = urlParams.get('id');
@@ -211,6 +256,17 @@ function displayUniversityDetail(uni) {
                 ${localStorage.getItem('currentStudent') ? `<a href="dashboard.html" class="apply-btn">Apply Now →</a>` : `<a href="login.html" class="apply-btn">Login to Apply →</a>`}
             </div>
         </div>
+
+        <!-- Pros & Cons -->
+        ${uni.prosCons && uni.prosCons.length > 0 ? `
+        <div class="pros-cons-section">
+            <h4 style="color:#2e7d32;">✅ Pros</h4>
+            <ul>${uni.prosCons.filter(p => p.type === 'pro').map(p => `<li>${p.text}</li>`).join('')}</ul>
+            <h4 style="color:#c62828;">❌ Cons</h4>
+            <ul>${uni.prosCons.filter(p => p.type === 'con').map(p => `<li>${p.text}</li>`).join('')}</ul>
+        </div>
+        ` : ''}
+
         ${photos.length > 0 ? `
         <div class="photo-gallery-section">
             <h2 style="font-size:28px;margin-bottom:20px;">📸 Campus Photos</h2>
@@ -218,17 +274,26 @@ function displayUniversityDetail(uni) {
                 ${photos.map((photo, index) => `<div class="gallery-item" onclick="openPhotoModal('${photo}')"><img src="${photo}" alt="Campus Photo ${index + 1}"></div>`).join('')}
             </div>
         </div>` : ''}
+
         <h2 style="font-size:32px;margin:30px 0 20px;">Colleges & Programs</h2>
         <p style="color:#666;margin-bottom:20px;">Click on a college to view detailed study plan</p>
         <div class="colleges-grid">
-            ${uni.colleges && uni.colleges.length > 0 ? uni.colleges.map(college => `
+            ${uni.colleges && uni.colleges.length > 0 ? uni.colleges.map(college => {
+                // Calculate fee range for this college
+                const allFees = college.majors.flatMap(m => m.fees || []);
+                const feeValues = allFees.map(f => (parseFloat(f.Tuition_Fee)||0)+(parseFloat(f.Registration_Fee)||0)+(parseFloat(f.Other_Fees)||0));
+                const minFee = feeValues.length ? Math.min(...feeValues) : null;
+                const maxFee = feeValues.length ? Math.max(...feeValues) : null;
+                const feeText = minFee ? (minFee === maxFee ? `💰 ${minFee.toLocaleString()} EGP` : `💰 ${minFee.toLocaleString()} – ${maxFee.toLocaleString()} EGP`) : '';
+                return `
                 <div class="college-card" onclick="showStudyPlan('${college.Name.replace(/'/g, "\\'")}', ${JSON.stringify(college.majors || []).replace(/"/g, '&quot;')})">
                     <h4>${college.Name}</h4>
                     <p>${college.Description || ''}</p>
+                    ${feeText ? `<p style="color:#31487A;font-weight:600;">${feeText}</p>` : ''}
                     ${college.majors && college.majors.length > 0 ? `<div class="majors-list">${college.majors.map(major => `<span class="major-tag">${major.Name} (${major.Degree_Type || 'Bachelor'})</span>`).join('')}</div>` : '<p style="font-size:12px;color:#999;">No majors available</p>'}
                     <p style="color:#ff6600;font-size:12px;margin-top:10px;">📚 Click to view study plan →</p>
                 </div>
-            `).join('') : '<p>No colleges found for this university.</p>'}
+            `}).join('') : '<p>No colleges found for this university.</p>'}
         </div>
         <div id="studyPlanModal" class="modal" style="display:none;">
             <div class="modal-content">
@@ -304,7 +369,9 @@ function showStudyPlan(collegeName, majors) {
 
 function closeModal() { const modal = document.getElementById('studyPlanModal'); if (modal) modal.style.display = 'none'; }
 
-// Dashboard
+// ============================================
+// DASHBOARD
+// ============================================
 async function loadDashboard() {
     const student = checkAuth();
     if (!student) return;
@@ -342,24 +409,17 @@ async function loadMyApplications(studentId) {
 async function loadNewApplicationForm() {
     const content = document.getElementById('dashboardContent');
     const student = JSON.parse(localStorage.getItem('currentStudent'));
-    
     try {
         const [majors, universities] = await Promise.all([
             fetch(`${API_URL}/majors`).then(r => r.json()),
             fetch(`${API_URL}/universities`).then(r => r.json())
         ]);
-
-        // Store majors globally for filtering
-        window.allMajors = majors;
-
+        window.allMajors = majors; // store for filtering
         content.innerHTML = `
             <h2 style="margin-bottom:25px;">Apply to University</h2>
             <div class="application-form">
                 <form onsubmit="submitApplication(event)">
-                    <div class="form-group">
-                        <label>Student</label>
-                        <input type="text" value="${student.First_Name} ${student.Last_Name}" disabled>
-                    </div>
+                    <div class="form-group"><label>Student</label><input type="text" value="${student.First_Name} ${student.Last_Name}" disabled></div>
                     <div class="form-group">
                         <label>Select University</label>
                         <select id="appUni" required onchange="filterMajorsByUniversity()">
@@ -374,54 +434,29 @@ async function loadNewApplicationForm() {
                         </select>
                     </div>
                     <div class="form-row">
-                        <div class="form-group">
-                            <label>GPA (0-4)</label>
-                            <input type="number" id="appGPA" step="0.01" min="0" max="4" placeholder="e.g., 3.5" required>
-                        </div>
-                        <div class="form-group">
-                            <label>High School Score (0-100)</label>
-                            <input type="number" id="appScore" step="0.01" min="0" max="100" placeholder="e.g., 95" required>
-                        </div>
+                        <div class="form-group"><label>GPA (0-4)</label><input type="number" id="appGPA" step="0.01" min="0" max="4" placeholder="e.g., 3.5" required></div>
+                        <div class="form-group"><label>High School Score (0-100)</label><input type="number" id="appScore" step="0.01" min="0" max="100" placeholder="e.g., 95" required></div>
                     </div>
                     <button type="submit" class="btn-primary btn-full" style="margin-top:10px;">Submit Application</button>
                 </form>
                 <div id="appMessage" class="message"></div>
-            </div>
-        `;
+            </div>`;
     } catch (error) {
         content.innerHTML = '<p>Error loading form.</p>';
     }
 }
 
 // Filter majors dropdown based on selected university
-// Filter majors dropdown based on selected university
 function filterMajorsByUniversity() {
-    const uniSelect = document.getElementById('appUni');
-    const uniId = parseInt(uniSelect.value); // ensure integer
+    const uniId = parseInt(document.getElementById('appUni').value);
     const majorSelect = document.getElementById('appMajor');
     const allMajors = window.allMajors || [];
-
-    console.log('Selected University ID:', uniId);
-    console.log('Total majors loaded:', allMajors.length);
-
-    // Check for University_ID or university_id field
-    const sample = allMajors[0];
-    console.log('Sample major object:', sample);
-
-    // Determine the field name (it might be University_ID or university_id)
-    const uniIdField = sample && 'University_ID' in sample ? 'University_ID' : 
-                       sample && 'university_id' in sample ? 'university_id' : null;
-
+    const uniIdField = allMajors[0] && 'University_ID' in allMajors[0] ? 'University_ID' : (allMajors[0] && 'university_id' in allMajors[0] ? 'university_id' : null);
     if (!uniIdField) {
-        console.error('Majors data does not contain university ID field');
-        majorSelect.innerHTML = '<option value="">Error loading majors – please refresh</option>';
+        majorSelect.innerHTML = '<option value="">Error loading majors</option>';
         return;
     }
-
-    // Filter majors where the university ID matches
     const filtered = allMajors.filter(m => parseInt(m[uniIdField]) === uniId);
-    console.log('Filtered majors count:', filtered.length);
-
     if (filtered.length === 0) {
         majorSelect.innerHTML = '<option value="">No majors available for this university</option>';
     } else {

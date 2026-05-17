@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
+const nodemailer = require('nodemailer');
 
 // Get all students
 router.get('/', async (req, res) => {
@@ -23,16 +24,31 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-// Create new student
+// Create new student (with validation)
 router.post('/', async (req, res) => {
     try {
         const { First_Name, Last_Name, Gender, Date_of_Birth, National_ID, Email, Phone, Address, Password } = req.body;
+
+        // Password length check
+        if (!Password || Password.length < 8) {
+            return res.status(400).json({ error: 'Password must be at least 8 characters' });
+        }
+
+        // Email uniqueness check (also enforced by UNIQUE constraint)
+        const [existing] = await db.query('SELECT Student_ID FROM student WHERE Email = ?', [Email]);
+        if (existing.length > 0) {
+            return res.status(409).json({ error: 'This email is already registered' });
+        }
+
         const [result] = await db.query(
             'INSERT INTO student (First_Name, Last_Name, Gender, Date_of_Birth, National_ID, Email, Phone, Address, Password) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [First_Name, Last_Name, Gender, Date_of_Birth, National_ID, Email, Phone, Address, Password || '123']
+            [First_Name, Last_Name, Gender, Date_of_Birth, National_ID, Email, Phone, Address, Password]
         );
         res.status(201).json({ id: result.insertId, message: 'Student created successfully' });
     } catch (error) {
+        if (error.code === 'ER_DUP_ENTRY') {
+            return res.status(409).json({ error: 'This email is already registered' });
+        }
         res.status(500).json({ error: error.message });
     }
 });
@@ -87,6 +103,82 @@ router.get('/:id/applications', async (req, res) => {
         res.json(rows);
     } catch (error) {
         res.status(500).json({ error: error.message });
+    }
+});
+
+// ---------- Email Verification Routes ----------
+
+// Send verification code
+router.post('/send-code', async (req, res) => {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email required' });
+
+    // Check if already registered
+    const [existing] = await db.query('SELECT Student_ID FROM student WHERE Email = ?', [email]);
+    if (existing.length > 0) return res.status(409).json({ error: 'Email already registered' });
+
+    // Generate 6-digit code
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60000); // 10 minutes
+
+    // Delete any previous codes for this email
+    await db.query('DELETE FROM email_verification WHERE email = ?', [email]);
+
+    // Store new code
+    await db.query('INSERT INTO email_verification (email, code, expires_at) VALUES (?, ?, ?)', [email, code, expiresAt]);
+
+    // Send email
+    const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS
+        }
+    });
+
+    try {
+        await transporter.sendMail({
+            from: `"EduFuture" <${process.env.EMAIL_USER}>`,
+            to: email,
+            subject: 'Your EduFuture Verification Code',
+            html: `<h3>Your verification code is: <strong>${code}</strong></h3><p>This code expires in 10 minutes.</p>`
+        });
+        res.json({ message: 'Verification code sent' });
+    } catch (error) {
+        console.error('Email error:', error);
+        res.status(500).json({ error: 'Failed to send email. Please try again.' });
+    }
+});
+
+// Verify code and register student
+router.post('/verify-and-register', async (req, res) => {
+    const { email, code, ...studentData } = req.body;
+    if (!email || !code) return res.status(400).json({ error: 'Email and code required' });
+
+    const [verifications] = await db.query(
+        'SELECT * FROM email_verification WHERE email = ? AND code = ? AND expires_at > NOW() AND used = 0',
+        [email, code]
+    );
+    if (verifications.length === 0) return res.status(400).json({ error: 'Invalid or expired code' });
+
+    // Mark code as used
+    await db.query('UPDATE email_verification SET used = 1 WHERE id = ?', [verifications[0].id]);
+
+    // Validate password
+    if (!studentData.Password || studentData.Password.length < 8) {
+        return res.status(400).json({ error: 'Password must be at least 8 characters' });
+    }
+
+    // Create student
+    try {
+        const [result] = await db.query(
+            'INSERT INTO student (First_Name, Last_Name, Gender, Date_of_Birth, National_ID, Email, Phone, Address, Password) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [studentData.First_Name, studentData.Last_Name, studentData.Gender, studentData.Date_of_Birth, studentData.National_ID, email, studentData.Phone, studentData.Address, studentData.Password]
+        );
+        res.status(201).json({ id: result.insertId, message: 'Registration successful' });
+    } catch (error) {
+        if (error.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'Email already registered' });
+        throw error;
     }
 });
 

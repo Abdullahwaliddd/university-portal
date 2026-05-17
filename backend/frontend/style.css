@@ -1312,3 +1312,22 @@ body {
 .footer-links a:hover:after {
     width: 100%;
 }
+/* Pros & Cons Section */
+.pros-cons-section {
+    margin-top: 20px;
+    background: #f8f9ff;
+    padding: 20px;
+    border-radius: 12px;
+}
+.pros-cons-section h4 {
+    margin-bottom: 10px;
+    font-size: 18px;
+}
+.pros-cons-section ul {
+    list-style: none;
+    padding-left: 0;
+}
+.pros-cons-section li {
+    padding: 5px 0;
+    font-size: 14px;
+}

@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 
-// Get all majors
+// Get all majors (with university ID)
 router.get('/', async (req, res) => {
     try {
         const [rows] = await db.query(`
@@ -22,16 +22,16 @@ router.get('/:id', async (req, res) => {
     try {
         const [major] = await db.query('SELECT * FROM major WHERE Major_ID = ?', [req.params.id]);
         if (major.length === 0) return res.status(404).json({ error: 'Major not found' });
-        
+
         const [studyPlans] = await db.query('SELECT * FROM study_plan WHERE Major_ID = ?', [req.params.id]);
-        
+
         for (let plan of studyPlans) {
             const [courses] = await db.query('SELECT * FROM course WHERE Plan_ID = ?', [plan.Plan_ID]);
             plan.courses = courses;
         }
-        
+
         const [fees] = await db.query('SELECT * FROM fee WHERE Major_ID = ?', [req.params.id]);
-        
+
         res.json({ ...major[0], studyPlans, fees });
     } catch (error) {
         res.status(500).json({ error: error.message });
