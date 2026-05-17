@@ -135,6 +135,18 @@ async function handleRegister(event) {
     const messageDiv = document.getElementById('registerMessage');
     const email = document.getElementById('regEmail').value.trim();
     const password = document.getElementById('regPassword').value;
+    const firstName = document.getElementById('regFirstName').value.trim();
+    const lastName = document.getElementById('regLastName').value.trim();
+    const dob = document.getElementById('regDOB').value;
+    const phone = document.getElementById('regPhone').value.trim();
+    const address = document.getElementById('regAddress').value.trim();
+
+    // Check all fields are filled (extra safety)
+    if (!firstName || !lastName || !email || !password || !dob || !phone || !address) {
+        messageDiv.className = 'message error';
+        messageDiv.textContent = 'All fields are required.';
+        return;
+    }
 
     if (password.length < 8) {
         messageDiv.className = 'message error';
@@ -209,6 +221,13 @@ async function verifyAndRegister(event) {
         Address: document.getElementById('regAddress').value,
         Password: document.getElementById('regPassword').value
     };
+
+    // Quick check again for required fields (just in case)
+    if (!studentData.First_Name || !studentData.Last_Name || !studentData.Gender || !studentData.Date_of_Birth || !studentData.Phone || !studentData.Address) {
+        messageDiv.className = 'message error';
+        messageDiv.textContent = 'All fields are required.';
+        return;
+    }
 
     try {
         const response = await fetch(`${API_URL}/students/verify-and-register`, {
