@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
-const { Resend } = require('resend');
 
-// Initialize Resend with API key from environment
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+// Brevo API configuration
+const BREVO_API_KEY = process.env.BREVO_API_KEY;
+const BREVO_FROM_EMAIL = process.env.BREVO_FROM_EMAIL;
 
 // Get all students
 router.get('/', async (req, res) => {
@@ -105,7 +105,7 @@ router.get('/:id/applications', async (req, res) => {
     }
 });
 
-// ---------- Email Verification with Resend (debug logging) ----------
+// ---------- Email Verification with Brevo ----------
 
 router.post('/send-code', async (req, res) => {
     const { email } = req.body;
@@ -123,41 +123,41 @@ router.post('/send-code', async (req, res) => {
 
         let emailSent = false;
 
-        // ---------- DETAILED LOGGING ----------
-        console.log('--- SEND-CODE DEBUG ---');
-        console.log('Target email:', email);
-        console.log('RESEND_API_KEY exists:', !!process.env.RESEND_API_KEY);
-        console.log('RESEND_FROM_EMAIL:', process.env.RESEND_FROM_EMAIL || 'not set');
-        console.log('Resend client initialized:', !!resend);
-
-        if (resend && process.env.RESEND_API_KEY) {
+        if (BREVO_API_KEY && BREVO_FROM_EMAIL) {
             try {
-                const result = await resend.emails.send({
-                    from: process.env.RESEND_FROM_EMAIL || 'EduFuture <onboarding@resend.dev>',
-                    to: email,
-                    subject: 'Your EduFuture Verification Code',
-                    html: `
-                        <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto;">
-                            <h2 style="color: #31487A;">Welcome to EduFuture!</h2>
-                            <p>Thank you for registering. Please use the verification code below to complete your account:</p>
-                            <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
-                                <span style="font-size: 28px; font-weight: bold; letter-spacing: 4px; color: #192338;">${code}</span>
+                const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+                    method: 'POST',
+                    headers: {
+                        'api-key': BREVO_API_KEY,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        sender: { email: BREVO_FROM_EMAIL, name: 'EduFuture' },
+                        to: [{ email }],
+                        subject: 'Your EduFuture Verification Code',
+                        htmlContent: `
+                            <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto;">
+                                <h2 style="color: #31487A;">Welcome to EduFuture!</h2>
+                                <p>Your verification code is:</p>
+                                <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
+                                    <span style="font-size: 28px; font-weight: bold; letter-spacing: 4px; color: #192338;">${code}</span>
+                                </div>
+                                <p>This code is valid for 10 minutes.</p>
                             </div>
-                            <p>This code is valid for <strong>10 minutes</strong>.</p>
-                            <p>If you didn't request this, you can safely ignore this email.</p>
-                            <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
-                            <p style="font-size: 12px; color: #888;">EduFuture – Opening the gate to your future.</p>
-                        </div>
-                    `,
-                    text: `Your EduFuture verification code is: ${code}`,
+                        `,
+                        textContent: `Your EduFuture verification code is: ${code}`
+                    })
                 });
-                console.log('Resend API response:', result);
-                emailSent = true;
-            } catch (resendError) {
-                console.error('Resend error details:', resendError);
+
+                const result = await response.json();
+                if (response.ok && result.messageId) {
+                    emailSent = true;
+                } else {
+                    console.error('Brevo error:', result);
+                }
+            } catch (brevoError) {
+                console.error('Brevo API call failed:', brevoError);
             }
-        } else {
-            console.log('Resend not configured – skipping email');
         }
 
         if (emailSent) {
