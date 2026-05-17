@@ -1,7 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
-const nodemailer = require('nodemailer');
+const sgMail = require('@sendgrid/mail');
+
+// Set SendGrid API key from environment
+if (process.env.SENDGRID_API_KEY) {
+    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+}
 
 // Get all students
 router.get('/', async (req, res) => {
@@ -102,7 +107,7 @@ router.get('/:id/applications', async (req, res) => {
     }
 });
 
-// ---------- Email Verification (with instant fallback) ----------
+// ---------- Email Verification (SendGrid + fallback) ----------
 
 router.post('/send-code', async (req, res) => {
     const { email } = req.body;
@@ -118,44 +123,25 @@ router.post('/send-code', async (req, res) => {
         await db.query('DELETE FROM email_verification WHERE email = ?', [email]);
         await db.query('INSERT INTO email_verification (email, code, expires_at) VALUES (?, ?, ?)', [email, code, expiresAt]);
 
-        // ---------- Email sending with fast timeout ----------
         let emailSent = false;
 
-        // Railway blocks outbound SMTP – skip email automatically
-        const isRailway = !!process.env.RAILWAY_SERVICE || !!process.env.RAILWAY_ENVIRONMENT;
-
-        if (!isRailway && process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-            const transporter = nodemailer.createTransport({
-                service: 'gmail',
-                auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-                // Force a short connection timeout (5 seconds)
-                connectionTimeout: 5000,
-                greetingTimeout: 5000,
-                socketTimeout: 5000
-            });
-
-            // Race between sending and a 5-second timeout
-            const sendPromise = transporter.sendMail({
-                from: `"EduFuture" <${process.env.EMAIL_USER}>`,
+        // Send via SendGrid if API key is configured
+        if (process.env.SENDGRID_API_KEY) {
+            const msg = {
                 to: email,
+                from: process.env.SENDGRID_FROM_EMAIL || 'noreply@edufuture.com',
                 subject: 'Your EduFuture Verification Code',
                 html: `<h3>Your verification code is: <strong>${code}</strong></h3><p>This code expires in 10 minutes.</p>`
-            });
-
-            const timeoutPromise = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('Email send timeout')), 5000)
-            );
+            };
 
             try {
-                await Promise.race([sendPromise, timeoutPromise]);
+                await sgMail.send(msg);
                 emailSent = true;
-            } catch (emailError) {
-                console.error('Email send failed or timed out:', emailError.message);
-                emailSent = false;
+            } catch (sendError) {
+                console.error('SendGrid error:', sendError.response?.body || sendError.message);
             }
         }
 
-        // Respond
         if (emailSent) {
             res.json({ message: 'Verification code sent to your email' });
         } else {
