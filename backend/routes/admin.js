@@ -6,7 +6,6 @@ const path = require('path');
 const fs = require('fs');
 
 // --------------------- MULTER CONFIGURATIONS ---------------------
-
 // Main university photo storage
 const photoStorage = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -129,7 +128,6 @@ router.delete('/applications/:id', async (req, res) => {
 });
 
 // --------------------- UNIVERSITIES (CRUD + PHOTOS) ---------------------
-
 router.get('/universities', async (req, res) => {
     try {
         const [rows] = await db.query('SELECT * FROM university ORDER BY University_ID');
@@ -196,7 +194,6 @@ router.post('/universities/:id/photo', uploadPhoto.single('photo'), async (req, 
 });
 
 // --------------------- GALLERY PHOTOS ---------------------
-// Upload a gallery photo
 router.post('/universities/:id/photos', uploadGallery.single('photo'), async (req, res) => {
     try {
         const filePath = `/images/gallery/${req.file.filename}`;
@@ -213,7 +210,6 @@ router.post('/universities/:id/photos', uploadGallery.single('photo'), async (re
     }
 });
 
-// Get gallery photos
 router.get('/universities/:id/photos', async (req, res) => {
     try {
         const [rows] = await db.query('SELECT photos FROM university WHERE University_ID = ?', [req.params.id]);
@@ -227,7 +223,6 @@ router.get('/universities/:id/photos', async (req, res) => {
     }
 });
 
-// Delete a gallery photo
 router.delete('/universities/:id/photos', async (req, res) => {
     try {
         const { filename } = req.body;
@@ -257,6 +252,24 @@ router.get('/majors', async (req, res) => {
             ORDER BY m.Major_ID
         `);
         res.json(rows);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ★★★ THIS IS THE MISSING ROUTE ★★★
+router.get('/majors/:id', async (req, res) => {
+    try {
+        const [rows] = await db.query(
+            `SELECT m.*, c.Name as College_Name, u.Name as University_Name, u.University_ID
+             FROM major m 
+             JOIN college c ON m.College_ID = c.College_ID 
+             JOIN university u ON c.University_ID = u.University_ID 
+             WHERE m.Major_ID = ?`,
+            [req.params.id]
+        );
+        if (rows.length === 0) return res.status(404).json({ error: 'Major not found' });
+        res.json(rows[0]);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
