@@ -371,45 +371,77 @@ function updateNavAuth() {
 function showStudyPlan(collegeName, majors) {
     const modal = document.getElementById('studyPlanModal');
     if (!modal) return;
+
     document.getElementById('modalTitle').textContent = collegeName + ' - Study Plan';
+
     let html = '';
+
     if (majors.length === 0) {
-        html = '<p>No study plans available.</p>';
+        html = '<p style="padding:20px;text-align:center;color:#666;">No study plans available for this college.</p>';
     } else {
         majors.forEach(major => {
-            html += `<div style="margin-bottom:30px;"><h4>🎓 ${major.Name} <span>(${major.Degree_Type || 'Bachelor'} - ${major.Duration_Years || 4} years)</span></h4>`;
+            html += `
+                <div class="study-plan-major">
+                    <h4 class="major-title">
+                        🎓 ${major.Name}
+                        <span class="major-badge">${major.Degree_Type || 'Bachelor'}</span>
+                        <span class="major-duration">${major.Duration_Years || 4} years</span>
+                    </h4>`;
+
             if (major.studyPlans && major.studyPlans.length > 0) {
                 major.studyPlans.forEach(plan => {
-                    html += `<p>📋 ${plan.Plan_Name} - ${plan.Total_Credit_Hours || 0} Credit Hours</p>`;
+                    html += `
+                        <div class="study-plan-card">
+                            <div class="plan-header">
+                                📋 ${plan.Plan_Name}
+                                <span class="credit-badge">${plan.Total_Credit_Hours || 0} Credit Hours</span>
+                            </div>`;
+
                     if (plan.courses && plan.courses.length > 0) {
+                        // Group courses by level
                         const levels = {};
-                        plan.courses.forEach(c => {
-                            const level = c.Level || 'Other';
+                        plan.courses.forEach(course => {
+                            const level = course.Level || 'Other';
                             if (!levels[level]) levels[level] = [];
-                            levels[level].push(c);
+                            levels[level].push(course);
                         });
-                        html += '<table style="width:100%;"><thead><tr><th>Code</th><th>Name</th><th>Credits</th><th>Semester</th><th>Level</th></tr></thead><tbody>';
+
+                        html += '<div class="course-table-wrapper"><table class="course-table">';
+                        html += '<thead><tr><th>Code</th><th>Course Name</th><th>Credits</th><th>Semester</th></tr></thead><tbody>';
+
                         Object.keys(levels).sort().forEach(level => {
-                            html += `<tr><td colspan="5" style="background:#e8eaf6;">📚 ${level}</td></tr>`;
-                            levels[level].forEach(c => {
-                                html += `<tr><td>${c.Course_Code||''}</td><td>${c.Course_Name}</td><td>${c.Credit_Hours||''}</td><td>${c.Semester||''}</td><td>${c.Level||''}</td></tr>`;
+                            html += `<tr class="level-header"><td colspan="4">📚 ${level}</td></tr>`;
+                            levels[level].forEach(course => {
+                                html += `
+                                    <tr>
+                                        <td class="code-cell">${course.Course_Code || 'N/A'}</td>
+                                        <td>${course.Course_Name}</td>
+                                        <td class="center-cell">${course.Credit_Hours || '-'}</td>
+                                        <td class="center-cell">${course.Semester || '-'}</td>
+                                    </tr>`;
                             });
                         });
-                        html += '</tbody></table>';
+
+                        html += '</tbody></table></div>';
                     } else {
-                        html += '<p>No courses available.</p>';
+                        html += '<p style="padding:10px;color:#999;">No courses available for this plan.</p>';
                     }
+                    html += '</div>';
                 });
             } else {
-                html += '<p>No study plan available.</p>';
+                html += '<p style="padding:10px;color:#999;">No study plan available for this major.</p>';
             }
             html += '</div>';
         });
     }
+
     document.getElementById('modalBody').innerHTML = html;
     modal.style.display = 'block';
-    modal.onclick = function(e) { if (e.target === modal) closeModal(); };
+    modal.onclick = function(e) {
+        if (e.target === modal) closeModal();
+    };
 }
+
 function closeModal() { document.getElementById('studyPlanModal').style.display = 'none'; }
 
 // ========== DASHBOARD ==========
