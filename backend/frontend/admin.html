@@ -25,14 +25,6 @@
         * { margin:0; padding:0; box-sizing:border-box; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--dark-bg); color: var(--text); }
 
-        /* Login page – body is centered via inline style */
-        /* Dashboard layout – body gets class "admin-layout" */
-        body.admin-layout {
-            display: flex;
-            height: 100vh;
-            overflow: hidden;
-        }
-
         .sidebar { width: 240px; background: var(--card-bg); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 20px; flex-shrink: 0; }
         .sidebar h2 { font-size: 20px; margin-bottom: 30px; color: var(--jordy); }
         .sidebar nav a { display: block; padding: 10px 15px; color: var(--text-light); text-decoration: none; border-radius: 8px; margin-bottom: 5px; cursor: pointer; transition: 0.2s; }
@@ -96,8 +88,6 @@
         }
 
         function showLogin(app) {
-            // Ensure body doesn't have the dashboard layout class
-            document.body.classList.remove('admin-layout');
             document.body.style.display = 'flex';
             document.body.style.alignItems = 'center';
             document.body.style.justifyContent = 'center';
@@ -123,26 +113,26 @@
         }
 
         function showDashboard(app) {
-            // Remove inline styles, add dashboard layout class
-            document.body.removeAttribute('style');
-            document.body.classList.add('admin-layout');
+            document.body.removeAttribute('style'); // reset body styling for layout
             app.innerHTML = `
-                <div class="sidebar">
-                    <h2>🎓 EduFuture</h2>
-                    <nav>
-                        <a class="active" onclick="showTab('dashboard', this)">📊 Dashboard</a>
-                        <a onclick="showTab('students', this)">👨‍🎓 Students</a>
-                        <a onclick="showTab('applications', this)">📝 Applications</a>
-                        <a onclick="showTab('universities', this)">🏛️ Universities</a>
-                        <a onclick="showTab('majors', this)">🎓 Majors</a>
-                        <a onclick="showTab('fees', this)">💰 Fees</a>
-                        <a onclick="showTab('studyplans', this)">📚 Study Plans</a>
-                    </nav>
-                    <div style="margin-top:auto;">
-                        <button class="btn btn-outline" onclick="adminLogout()" style="width:100%">🚪 Logout</button>
+                <div class="app-layout" style="display:flex; height:100vh; overflow:hidden;">
+                    <div class="sidebar">
+                        <h2>🎓 EduFuture</h2>
+                        <nav>
+                            <a class="active" onclick="showTab('dashboard', this)">📊 Dashboard</a>
+                            <a onclick="showTab('students', this)">👨‍🎓 Students</a>
+                            <a onclick="showTab('applications', this)">📝 Applications</a>
+                            <a onclick="showTab('universities', this)">🏛️ Universities</a>
+                            <a onclick="showTab('majors', this)">🎓 Majors</a>
+                            <a onclick="showTab('fees', this)">💰 Fees</a>
+                            <a onclick="showTab('studyplans', this)">📚 Study Plans</a>
+                        </nav>
+                        <div style="margin-top:auto;">
+                            <button class="btn btn-outline" onclick="adminLogout()" style="width:100%">🚪 Logout</button>
+                        </div>
                     </div>
+                    <div class="main" id="mainContent"></div>
                 </div>
-                <div class="main" id="mainContent"></div>
                 <div id="modal" class="modal">
                     <div class="modal-content" id="modalBody"></div>
                 </div>`;
@@ -419,7 +409,7 @@
         }
         async function deleteMajor(id) { if(confirm('Delete this major?')) { await fetch(`${API}/majors/${id}`, {method:'DELETE'}); loadMajors(); } }
 
-        // ---------- FEES (NEW) ----------
+        // ---------- FEES ----------
         async function loadFees() {
             const res = await fetch(`${API}/fees`);
             const fees = await res.json();
