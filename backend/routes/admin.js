@@ -6,7 +6,6 @@ const path = require('path');
 const fs = require('fs');
 
 // --------------------- MULTER CONFIGURATIONS ---------------------
-// Main university photo storage
 const photoStorage = multer.diskStorage({
     destination: (req, file, cb) => {
         const dir = path.join(__dirname, '..', 'frontend', 'images');
@@ -19,7 +18,6 @@ const photoStorage = multer.diskStorage({
 });
 const uploadPhoto = multer({ storage: photoStorage, limits: { fileSize: 5 * 1024 * 1024 } });
 
-// Gallery photos storage
 const galleryStorage = multer.diskStorage({
     destination: (req, file, cb) => {
         const dir = path.join(__dirname, '..', 'frontend', 'images', 'gallery');
@@ -37,10 +35,7 @@ const uploadGallery = multer({ storage: galleryStorage, limits: { fileSize: 5 * 
 router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
-        const [rows] = await db.query(
-            'SELECT * FROM admin WHERE email = ? AND password = ?',
-            [email, password]
-        );
+        const [rows] = await db.query('SELECT * FROM admin WHERE email = ? AND password = ?', [email, password]);
         if (rows.length === 0) return res.status(401).json({ error: 'Invalid admin credentials' });
         res.json({ admin: rows[0], message: 'Admin login successful' });
     } catch (error) {
@@ -127,7 +122,7 @@ router.delete('/applications/:id', async (req, res) => {
     }
 });
 
-// --------------------- UNIVERSITIES (CRUD + PHOTOS) ---------------------
+// --------------------- UNIVERSITIES ---------------------
 router.get('/universities', async (req, res) => {
     try {
         const [rows] = await db.query('SELECT * FROM university ORDER BY University_ID');
@@ -182,7 +177,6 @@ router.delete('/universities/:id', async (req, res) => {
     }
 });
 
-// Main photo upload
 router.post('/universities/:id/photo', uploadPhoto.single('photo'), async (req, res) => {
     try {
         const photoPath = `/images/uni-${req.params.id}.jpg`;
@@ -193,7 +187,7 @@ router.post('/universities/:id/photo', uploadPhoto.single('photo'), async (req, 
     }
 });
 
-// --------------------- GALLERY PHOTOS ---------------------
+// --------------------- GALLERY ---------------------
 router.post('/universities/:id/photos', uploadGallery.single('photo'), async (req, res) => {
     try {
         const filePath = `/images/gallery/${req.file.filename}`;
@@ -205,19 +199,6 @@ router.post('/universities/:id/photos', uploadGallery.single('photo'), async (re
         photos.push(filePath);
         await db.query('UPDATE university SET photos = ? WHERE University_ID = ?', [JSON.stringify(photos), req.params.id]);
         res.json({ message: 'Photo uploaded', path: filePath });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-router.get('/universities/:id/photos', async (req, res) => {
-    try {
-        const [rows] = await db.query('SELECT photos FROM university WHERE University_ID = ?', [req.params.id]);
-        let photos = [];
-        if (rows[0] && rows[0].photos) {
-            try { photos = JSON.parse(rows[0].photos); } catch(e) { photos = []; }
-        }
-        res.json(photos);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -241,7 +222,7 @@ router.delete('/universities/:id/photos', async (req, res) => {
     }
 });
 
-// --------------------- MAJORS (CRUD) ---------------------
+// --------------------- MAJORS ---------------------
 router.get('/majors', async (req, res) => {
     try {
         const [rows] = await db.query(`
@@ -257,7 +238,6 @@ router.get('/majors', async (req, res) => {
     }
 });
 
-// ★★★ THIS IS THE MISSING ROUTE ★★★
 router.get('/majors/:id', async (req, res) => {
     try {
         const [rows] = await db.query(
@@ -368,6 +348,58 @@ router.delete('/courses/:id', async (req, res) => {
     try {
         await db.query('DELETE FROM course WHERE Course_ID = ?', [req.params.id]);
         res.json({ message: 'Course deleted' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// --------------------- FEES (CRUD) ---------------------
+router.get('/fees', async (req, res) => {
+    try {
+        const [rows] = await db.query(`
+            SELECT f.*, m.Name as Major_Name, u.Name as University_Name
+            FROM fee f
+            JOIN major m ON f.Major_ID = m.Major_ID
+            JOIN college c ON m.College_ID = c.College_ID
+            JOIN university u ON c.University_ID = u.University_ID
+            ORDER BY f.Fee_ID
+        `);
+        res.json(rows);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+router.post('/fees', async (req, res) => {
+    try {
+        const { Tuition_Fee, Registration_Fee, Other_Fees, Currency, Academic_Year, Major_ID } = req.body;
+        const [result] = await db.query(
+            'INSERT INTO fee (Tuition_Fee, Registration_Fee, Other_Fees, Currency, Academic_Year, Major_ID) VALUES (?, ?, ?, ?, ?, ?)',
+            [Tuition_Fee, Registration_Fee, Other_Fees, Currency, Academic_Year, Major_ID]
+        );
+        res.status(201).json({ id: result.insertId, message: 'Fee added' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+router.put('/fees/:id', async (req, res) => {
+    try {
+        const { Tuition_Fee, Registration_Fee, Other_Fees, Currency, Academic_Year, Major_ID } = req.body;
+        await db.query(
+            'UPDATE fee SET Tuition_Fee=?, Registration_Fee=?, Other_Fees=?, Currency=?, Academic_Year=?, Major_ID=? WHERE Fee_ID=?',
+            [Tuition_Fee, Registration_Fee, Other_Fees, Currency, Academic_Year, Major_ID, req.params.id]
+        );
+        res.json({ message: 'Fee updated' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+router.delete('/fees/:id', async (req, res) => {
+    try {
+        await db.query('DELETE FROM fee WHERE Fee_ID = ?', [req.params.id]);
+        res.json({ message: 'Fee deleted' });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
