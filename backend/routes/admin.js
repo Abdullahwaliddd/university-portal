@@ -370,6 +370,25 @@ router.get('/fees', async (req, res) => {
     }
 });
 
+// ★★★ THIS ROUTE WAS MISSING – NOW ADDED ★★★
+router.get('/fees/:id', async (req, res) => {
+    try {
+        const [rows] = await db.query(
+            `SELECT f.*, m.Name as Major_Name, u.Name as University_Name
+             FROM fee f
+             JOIN major m ON f.Major_ID = m.Major_ID
+             JOIN college c ON m.College_ID = c.College_ID
+             JOIN university u ON c.University_ID = u.University_ID
+             WHERE f.Fee_ID = ?`,
+            [req.params.id]
+        );
+        if (rows.length === 0) return res.status(404).json({ error: 'Fee not found' });
+        res.json(rows[0]);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 router.post('/fees', async (req, res) => {
     try {
         const { Tuition_Fee, Registration_Fee, Other_Fees, Currency, Academic_Year, Major_ID } = req.body;
