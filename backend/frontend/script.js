@@ -141,7 +141,6 @@ async function handleRegister(event) {
     const phone = document.getElementById('regPhone').value.trim();
     const address = document.getElementById('regAddress').value.trim();
 
-    // Check all fields are filled (extra safety)
     if (!firstName || !lastName || !email || !password || !dob || !phone || !address) {
         messageDiv.className = 'message error';
         messageDiv.textContent = 'All fields are required.';
@@ -222,7 +221,6 @@ async function verifyAndRegister(event) {
         Password: document.getElementById('regPassword').value
     };
 
-    // Quick check again for required fields (just in case)
     if (!studentData.First_Name || !studentData.Last_Name || !studentData.Gender || !studentData.Date_of_Birth || !studentData.Phone || !studentData.Address) {
         messageDiv.className = 'message error';
         messageDiv.textContent = 'All fields are required.';
@@ -279,6 +277,11 @@ function displayUniversityDetail(uni) {
     const photos = uni.photos ? JSON.parse(uni.photos) : [];
     const mainPhoto = uni.photo || null;
 
+    // Transportation info
+    const transportInfo = uni.has_transportation == 1 
+        ? `🚌 Transportation available${uni.transportation_cost ? ' – ' + parseFloat(uni.transportation_cost).toLocaleString() + ' EGP/year' : ''}`
+        : '🚌 Transportation not provided';
+
     container.innerHTML = `
         <div class="uni-detail-header">
             <div class="uni-detail-image" style="background: linear-gradient(135deg, ${randomColor}, ${randomColor}dd);">
@@ -291,7 +294,9 @@ function displayUniversityDetail(uni) {
                     <span class="meta-tag">🏫 ${uni.Type || 'University'}</span>
                     ${uni.Email ? `<span class="meta-tag">📧 ${uni.Email}</span>` : ''}
                     ${uni.Phone ? `<span class="meta-tag">📞 ${uni.Phone}</span>` : ''}
+                    ${uni.ranking ? `<span class="meta-tag">🏆 Rank #${uni.ranking}</span>` : ''}
                 </div>
+                <p>${transportInfo}</p>
                 <p>A prestigious university offering world-class education.</p>
                 ${uni.Website ? (() => { let url = uni.Website; if (!url.startsWith('http')) url = 'https://' + url; return `<p><a href="${url}" target="_blank" style="color:#ff6600;">Visit Official Website →</a></p>`; })() : ''}
                 ${localStorage.getItem('currentStudent') ? `<a href="dashboard.html" class="apply-btn">Apply Now →</a>` : `<a href="login.html" class="apply-btn">Login to Apply →</a>`}

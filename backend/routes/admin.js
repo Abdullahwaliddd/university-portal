@@ -122,7 +122,7 @@ router.delete('/applications/:id', async (req, res) => {
     }
 });
 
-// --------------------- UNIVERSITIES ---------------------
+// --------------------- UNIVERSITIES (CRUD + PHOTOS) ---------------------
 router.get('/universities', async (req, res) => {
     try {
         const [rows] = await db.query('SELECT * FROM university ORDER BY University_ID');
@@ -144,10 +144,10 @@ router.get('/universities/:id', async (req, res) => {
 
 router.post('/universities', async (req, res) => {
     try {
-        const { Name, Type, Location, Email, Phone, Website } = req.body;
+        const { Name, Type, Location, Email, Phone, Website, ranking, has_transportation, transportation_cost } = req.body;
         const [result] = await db.query(
-            'INSERT INTO university (Name, Type, Location, Email, Phone, Website) VALUES (?, ?, ?, ?, ?, ?)',
-            [Name, Type, Location, Email, Phone, Website]
+            'INSERT INTO university (Name, Type, Location, Email, Phone, Website, ranking, has_transportation, transportation_cost) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [Name, Type, Location, Email, Phone, Website, ranking || null, has_transportation ? 1 : 0, transportation_cost || null]
         );
         res.status(201).json({ id: result.insertId, message: 'University added' });
     } catch (error) {
@@ -157,10 +157,10 @@ router.post('/universities', async (req, res) => {
 
 router.put('/universities/:id', async (req, res) => {
     try {
-        const { Name, Type, Location, Email, Phone, Website } = req.body;
+        const { Name, Type, Location, Email, Phone, Website, ranking, has_transportation, transportation_cost } = req.body;
         await db.query(
-            'UPDATE university SET Name=?, Type=?, Location=?, Email=?, Phone=?, Website=? WHERE University_ID=?',
-            [Name, Type, Location, Email, Phone, Website, req.params.id]
+            'UPDATE university SET Name=?, Type=?, Location=?, Email=?, Phone=?, Website=?, ranking=?, has_transportation=?, transportation_cost=? WHERE University_ID=?',
+            [Name, Type, Location, Email, Phone, Website, ranking || null, has_transportation ? 1 : 0, transportation_cost || null, req.params.id]
         );
         res.json({ message: 'University updated' });
     } catch (error) {
@@ -370,7 +370,6 @@ router.get('/fees', async (req, res) => {
     }
 });
 
-// ★★★ THIS ROUTE WAS MISSING – NOW ADDED ★★★
 router.get('/fees/:id', async (req, res) => {
     try {
         const [rows] = await db.query(

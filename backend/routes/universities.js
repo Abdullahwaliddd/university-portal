@@ -31,7 +31,6 @@ router.get('/:id', async (req, res) => {
                     );
                     plan.courses = courses;
                 }
-
                 major.studyPlans = studyPlans;
 
                 const [fees] = await db.query(
@@ -40,7 +39,6 @@ router.get('/:id', async (req, res) => {
                 );
                 major.fees = fees;
             }
-
             college.majors = majors;
         }
 

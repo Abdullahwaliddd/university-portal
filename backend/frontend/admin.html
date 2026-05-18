@@ -58,6 +58,7 @@
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 13px; color: var(--text-light); }
         .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--dark-bg); color: var(--text); }
+        .form-group input[type="checkbox"] { width: auto; margin-right: 8px; }
         .flex { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
 
         .status { padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
@@ -113,7 +114,7 @@
         }
 
         function showDashboard(app) {
-            document.body.removeAttribute('style'); // reset body styling for layout
+            document.body.removeAttribute('style');
             app.innerHTML = `
                 <div class="app-layout" style="display:flex; height:100vh; overflow:hidden;">
                     <div class="sidebar">
@@ -231,7 +232,7 @@
         async function updateApp(id, status) { await fetch(`${API}/applications/${id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status})}); loadApplications(); }
         async function deleteApp(id) { if(confirm('Delete this application?')) { await fetch(`${API}/applications/${id}`, {method:'DELETE'}); loadApplications(); } }
 
-        // ---------- UNIVERSITIES (with gallery) ----------
+        // ---------- UNIVERSITIES (with gallery + ranking/transport) ----------
         async function loadUniversities() {
             const res = await fetch(`${API}/universities`);
             const unis = await res.json();
@@ -242,6 +243,7 @@
                         <div class="card" style="padding:15px;">
                             <h3>${u.Name}</h3>
                             <p style="color:var(--text-light);font-size:13px;">${u.Type||'N/A'} | ${u.Location||'N/A'}</p>
+                            ${u.ranking ? `<p style="color:var(--accent);font-size:13px;">🏆 Rank: #${u.ranking}</p>` : ''}
                             ${u.photo ? `<img src="${u.photo}" style="max-width:100%;border-radius:8px;margin:5px 0;">` : ''}
                             <div style="margin-top:10px;">
                                 <button class="btn btn-outline btn-sm" onclick="openUniModal(${u.University_ID})">Edit</button>
@@ -255,7 +257,7 @@
         async function openUniModal(id = null) {
             const modal = document.getElementById('modal');
             const isEdit = id !== null;
-            let uni = {Name:'', Type:'', Location:'', Email:'', Phone:'', Website:'', photo:'', photos:'[]'};
+            let uni = {Name:'', Type:'', Location:'', Email:'', Phone:'', Website:'', ranking:'', has_transportation:0, transportation_cost:'', photo:'', photos:'[]'};
             if (isEdit) {
                 const res = await fetch(`${API}/universities/${id}`);
                 uni = await res.json();
@@ -271,6 +273,13 @@
                 <div class="form-group"><label>Email</label><input id="uniEmail" value="${uni.Email||''}"></div>
                 <div class="form-group"><label>Phone</label><input id="uniPhone" value="${uni.Phone||''}"></div>
                 <div class="form-group"><label>Website</label><input id="uniWeb" value="${uni.Website||''}"></div>
+                <div class="form-group"><label>Ranking (e.g., 1,2,3…)</label><input type="number" id="uniRanking" value="${uni.ranking||''}"></div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="uniTransport" ${uni.has_transportation == 1 ? 'checked' : ''}> Has Transportation
+                    </label>
+                </div>
+                <div class="form-group"><label>Transportation Cost (per year, EGP)</label><input type="number" id="uniTransportCost" value="${uni.transportation_cost||''}"></div>
                 <div class="form-group"><label>Main Photo</label>
                     <input type="file" id="uniPhoto" accept="image/*">
                     ${uni.photo ? `<img src="${uni.photo}" style="max-width:150px;margin-top:10px;border-radius:8px;">` : ''}
@@ -301,7 +310,10 @@
                 Location: document.getElementById('uniLoc').value,
                 Email: document.getElementById('uniEmail').value,
                 Phone: document.getElementById('uniPhone').value,
-                Website: document.getElementById('uniWeb').value
+                Website: document.getElementById('uniWeb').value,
+                ranking: document.getElementById('uniRanking').value || null,
+                has_transportation: document.getElementById('uniTransport').checked ? 1 : 0,
+                transportation_cost: document.getElementById('uniTransportCost').value || null
             };
             const url = id ? `${API}/universities/${id}` : `${API}/universities`;
             const method = id ? 'PUT' : 'POST';
@@ -557,7 +569,6 @@
 
         function closeModal() { document.getElementById('modal').classList.remove('active'); }
 
-        // Initial render
         renderApp();
     </script>
 </body>
